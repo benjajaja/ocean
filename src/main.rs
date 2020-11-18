@@ -9,12 +9,15 @@ use bevy::{
     },
     type_registry::TypeUuid,
 };
+// use bevy_prototype_input_map::*;
 use rand::prelude::*;
 
 /// This example illustrates how to add a custom attribute to a mesh and use it in a custom shader.
 fn main() {
     App::build()
+        .add_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins)
+        // .add_plugin(InputMapPlugin::default())
         .add_asset::<WaterMaterial>()
         .add_startup_system(setup.system())
         .add_system(bevy::input::system::exit_on_esc_system.system())
@@ -22,22 +25,33 @@ fn main() {
         .run();
 }
 
+struct Camera {
+    bobber: CameraBobber,
+}
+struct CameraBobber {
+    transform: Transform,
+}
+struct Player;
 #[derive(RenderResources, Default, TypeUuid)]
 #[uuid = "0320b9b8-b3a3-4baa-8bfa-c94008177b17"]
 struct WaterMaterial {
     pub time: f32,
+    pub camera: Vec3,
+    pub color: Vec4,
 }
 
-const VERTEX_SHADER: &str = include_str!("../media/shaders/water.vert");
-const FRAGMENT_SHADER: &str = include_str!("../media/shaders/water.frag");
+const VERTEX_SHADER: &str = include_str!("../assets/shaders/water.vert");
+const FRAGMENT_SHADER: &str = include_str!("../assets/shaders/water.frag");
 
 fn setup(
     commands: &mut Commands,
     mut pipelines: ResMut<Assets<PipelineDescriptor>>,
     mut shaders: ResMut<Assets<Shader>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<WaterMaterial>>,
+    mut water_materials: ResMut<Assets<WaterMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     mut render_graph: ResMut<RenderGraph>,
+    asset_server: Res<AssetServer>,
 ) {
     // Create a new shader pipeline
     let pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
@@ -47,41 +61,60 @@ fn setup(
 
     // Add an AssetRenderResourcesNode to our Render Graph. This will bind WaterMaterial resources to our shader
     render_graph.add_system_node(
-        "my_material_with_vertex_color_support",
+        "WaterMaterial",
         AssetRenderResourcesNode::<WaterMaterial>::new(true),
     );
-
     // Add a Render Graph edge connecting our new "my_material" node to the main pass node. This ensures "my_material" runs before the main pass
-    render_graph
-        .add_node_edge(
-            "my_material_with_vertex_color_support",
-            base::node::MAIN_PASS,
-        )
-        .unwrap();
-
-    // Create a new material
-    let material = materials.add(WaterMaterial {
-        time: 0.,
-    });
-
-    // create a generic cube
-    let cube_with_vertex_colors = Mesh::from(plane(5));
+    render_graph.add_node_edge(
+        "WaterMaterial",
+        base::node::MAIN_PASS,
+    ).unwrap();
 
     // Setup our world
-    commands.spawn(MeshBundle {
-            mesh: meshes.add(cube_with_vertex_colors), // use our cube with vertex colors
+    commands
+        // .spawn_scene(asset_server.load("countach.gltf"))
+        .spawn(PbrBundle {
+            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+            transform: Transform::from_translation(Vec3::new(5.0, 0.0, 0.0)),
+            ..Default::default()
+        })
+        .spawn(LightBundle {
+            transform: Transform::from_translation(Vec3::new(4.0, 50.0, 4.0)),
+            ..Default::default()
+        })
+
+        .spawn(MeshBundle {
+            mesh: asset_server.load("water.gltf#Mesh0/Primitive0"),
             render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::new(
                 pipeline_handle,
             )]),
+            transform: Transform::from_scale(Vec3::new(100.0, 100.0, 100.0)),
+            ..Default::default()
+        })
+        .with(water_materials.add(WaterMaterial {
+            time: 0.,
+            color: Vec4::new(0.1, 0.8, 0.5, 1.0),
+            camera: Vec3::new(0., 0., 0.),
+        }))
+
+        .spawn(PbrBundle {
+            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+            material: materials.add(Color::rgb(0.2, 0.8, 0.6).into()),
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             ..Default::default()
         })
-        .with(material)
-        // camera
+        .with(Player)
+
         .spawn(Camera3dBundle {
-            transform: Transform::from_translation(Vec3::new(0.0, 15.0, 15.0))
-                .looking_at(Vec3::default(), Vec3::unit_y()),
+            transform: Transform::from_translation(Vec3::new(0.0, 6.0, 15.0))
+                    .looking_at(Vec3::new(0.0, 5.0, 0.0), Vec3::unit_y()),
             ..Default::default()
+        })
+        .with(Camera {
+            bobber: CameraBobber {
+                transform: Transform::from_translation(Vec3::new(0.0, 5.0, 0.0)),
+            }
         });
 }
 
@@ -99,13 +132,6 @@ fn plane(size: u32) -> Mesh {
         let offset_y = y as f32 * CBRT3;
         let index_offset_y = y * size;
 
-        // if y == 0 {
-            // vertices.push(([0., 0., CBRT3], normal(), [1., 0.]));
-            // vertices.push(([0.5, 0., 0.], normal(), [1., 0.]));
-            // vertex_colors.push([rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>()]);
-            // vertex_colors.push([rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>()]);
-        // }
-
         if y == 0 {
             for x in 0..(size + 2) {
                 let offset_x = x as f32;
@@ -121,9 +147,6 @@ fn plane(size: u32) -> Mesh {
                     }
                 }
                 vertex_colors.push([rng.gen::<f32>(), rng.gen::<f32>(), rng.gen::<f32>()]);
-            }
-        } else if y % 2 != 0 {
-            for x in 0..(size / 2) {
             }
         }
     }
@@ -159,10 +182,14 @@ fn water_update(
     time: Res<Time>,
     mut water_mats: ResMut<Assets<WaterMaterial>>,
     water_query: Query<&Handle<WaterMaterial>>,
+    camera_query: Query<(&Transform, &Camera)>,
 ) {
     for water in &mut water_query.iter() {
         if let Some(water) = water_mats.get_mut(water) {
             water.time = time.seconds_since_startup as f32;
+            for (transform, _) in camera_query.iter() {
+                water.camera = transform.translation;
+            }
         }
     }
 }

@@ -9,4 +9,6 @@ edition = "2018"
 [dependencies]
 rand = "0.7.3"
 #bevy = "0.3.0" # make sure this is the latest version
-bevy = { git = "https://github.com/bevyengine/bevy" }
+#bevy_prototype_input_map = "0.1"
+bevy = { git = "https://github.com/bevyengine/bevy", rev = "4fecb899" }
+#bevy_prototype_input_map = { git = "https://github.com/PradeepKumarRajamanickam/bevy_input_map/" }
