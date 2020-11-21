@@ -83,7 +83,8 @@ fn setup(
     commands
         // .spawn_scene(asset_server.load("countach.gltf"))
         .spawn(PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+            // mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+            mesh: asset_server.load("flota1.glb#Mesh0/Primitive0"),
             material: materials.add(Color::rgb(0.0, 0.9, 0.6).into()),
             transform: Transform::from_translation(Vec3::new(5.0, 0.0, 0.0)),
             ..Default::default()
@@ -103,7 +104,7 @@ fn setup(
         })
 
         .spawn(MeshBundle {
-            mesh: asset_server.load("water.gltf#Mesh0/Primitive0"),
+            mesh: asset_server.load("plano.glb#Mesh0/Primitive0"),
             render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::new(
                 pipeline_handle,
             )]),
@@ -119,10 +120,18 @@ fn setup(
         .with(Water)
 
         .spawn(PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+            // mesh: asset_server.load("flota1.glb#Mesh0/Primitive0"),
             material: materials.add(Color::rgb(0.2, 0.8, 0.6).into()),
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             ..Default::default()
+        })
+        .with_children(|parent| {
+            parent.spawn(PbrBundle {
+                mesh: asset_server.load("flota1.glb#Mesh0/Primitive0"),
+                material: materials.add(Color::rgb(0.2, 0.8, 0.6).into()),
+                transform: Transform::from_rotation(Quat::from_rotation_y(3.1415 / 2.)),
+                ..Default::default()
+            });
         })
         .with(Player { })
         .with(PlayerBoat {
