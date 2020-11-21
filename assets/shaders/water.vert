@@ -6,6 +6,7 @@ layout(location = 0) in vec3 Vertex_Position;
 layout(location=1) out vec3 Vertex_Normal;
 layout(location=2) out vec4 World_Position;
 layout(location=3) out vec4 Original_World_Position;
+layout(location=4) out vec3 o_Vertex_Position;
 
 
 layout(set = 0, binding = 0) uniform Camera {
@@ -16,6 +17,7 @@ layout(set = 1, binding = 0) uniform Transform {
 };
 layout(set = 1, binding = 1) uniform WaterMaterial_time {
     float time;
+    float intensity;
     vec4 color;
     vec3 camera;
 };
@@ -35,15 +37,15 @@ struct WaveProperties {
     vec2 direction;
 };
 WaveData gerstner_wave(vec3 position, vec3 prev_tangent, vec3 prev_binormal, WaveProperties props);
-const WaveProperties wave1 = WaveProperties(2.1, 0.4, vec2(1.0, 0.0));
-const WaveProperties wave2 = WaveProperties(0.9, 0.1, vec2(1.0, 0.0));
-const WaveProperties wave3 = WaveProperties(0.5, 0.2, vec2(1.0, -0.2));
 
-
-
+const WaveProperties wave1 = WaveProperties(50., 0.2, vec2(1.0, 0.0));
+const WaveProperties wave2 = WaveProperties(10., 0.25, vec2(0.1, 0.9));
+const WaveProperties wave3 = WaveProperties(1.5, 0.15, vec2(0.1, -0.2));
 
 void main() {
+    o_Vertex_Position = Vertex_Position;
     Original_World_Position = Model * vec4(Vertex_Position, 1.0);
+
 
     /* gl_Position = ViewProj * Model * vec4(Vertex_Position, 1.0); */
     /* float noise_x = sine_noise(gl_Position.x, time / 2); */
@@ -58,9 +60,15 @@ void main() {
     WaveData wave = gerstner_wave(Original_World_Position.xyz, tangent, binormal, wave1);
     wave = gerstner_wave(wave.position, wave.tangent, wave.binormal, wave2);
     wave = gerstner_wave(wave.position, wave.tangent, wave.binormal, wave3);
+
+    /* float noise_x = sine_noise(Original_World_Position.x, time / 2); */
+    /* float noise_z = sine_noise(Original_World_Position.z, time / 4); */
+    /* wave.position.y += noise_x + noise_z; */
+
     World_Position = vec4(wave.position, 1);
+    /* World_Position = Original_World_Position; */
+    /* World_Position.y = abs(World_Position.x / 2); */
     gl_Position = ViewProj * World_Position;
-    gl_Position.y += sine_noise(gl_Position.z, time / 4);
 
     Vertex_Normal = normalize(cross(wave.binormal, wave.tangent));
 }
@@ -76,9 +84,6 @@ float rand(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 
-// float wavelength = 1.5;
-// float steepness = 0.4;
-// vec2 direction = vec2(1., -0.6);
 WaveData gerstner_wave(
     vec3 position,
     vec3 prev_tangent,
@@ -91,7 +96,7 @@ WaveData gerstner_wave(
     float c = sqrt(9.8 / k); // Wave speed
     float f = k * (dot(d, position.xz) - c * time);
     float amp_noise = (1 + snoise(position.xz / 10 + vec2(time*0.1, 0)) * 0.6);
-    float a = props.steepness / k * amp_noise;
+    float a = props.steepness / k;// * amp_noise;
 
     vec3 new_pos = vec3(
         position.x + d.x * (a * cos(f)),
