@@ -2,10 +2,14 @@
 
 layout(set = 1, binding = 1) uniform WaterMaterial_time {
     float time;
-    float intensity;
+};
+layout(set = 1, binding = 2) uniform WaterMaterial_color {
     vec4 color;
+};
+layout(set = 1, binding = 3) uniform WaterMaterial_camera {
     vec3 camera;
 };
+
 layout(location=1) in vec3 Vertex_Normal;
 layout(location=2) in vec4 World_Position;
 layout(location=3) in vec4 Original_World_Position;
@@ -20,8 +24,8 @@ const float FADE_DROPOFF = 0.75;
 void main() {
     float specular_intensity = .1;
     vec3 specular = pow(dot(
-        o_Vertex_Position,
-        /* normalize((camera - World_Position.xyz)), */
+        /* o_Vertex_Position, */
+        normalize((camera - World_Position.xyz)),
         reflect(light_direction, Vertex_Normal)
     ), specular_intensity) * vec3(1.0, 1.0, 1.0);
 
@@ -42,5 +46,5 @@ void main() {
     );
     /* o_Target = vec4(specular, 1.); */
     /* o_Target = vec4(Vertex_Normal / 2., 1); */
-    /* o_Target = vec4(0., 0., World_Position.y, 1.); */
+    /* o_Target = vec4(color.rgb, 1.); */
 }

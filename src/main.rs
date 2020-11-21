@@ -17,9 +17,12 @@ fn main() {
         .add_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins)
         .add_asset::<WaterMaterial>()
+        .add_resource(Weather {
+            wave_intensity: 25.,
+        })
         .add_startup_system(setup.system())
         .add_system(bevy::input::system::exit_on_esc_system.system())
-        .add_system(water_update.system())
+        .add_system(water_update_system.system())
         .add_system(keyboard_input_system.system())
         .add_system(boat_physics_system.system())
         .add_system(camera_system.system())
@@ -35,16 +38,21 @@ struct PlayerBoat {
     thrust: f32,
     steer: f32,
 }
-struct Water;
 struct WaveProbe;
 
 #[derive(RenderResources, Default, TypeUuid)]
 #[uuid = "0320b9b8-b3a3-4baa-8bfa-c94008177b17"]
 struct WaterMaterial {
     pub time: f32,
-    pub intensity: f32,
-    pub camera: Vec3,
     pub color: Vec4,
+    pub camera: Vec3,
+    pub wave1: Vec4,
+    pub wave2: Vec4,
+    pub wave3: Vec4,
+}
+
+struct Weather {
+    wave_intensity: f32,
 }
 
 const VERTEX_SHADER: &str = include_str!("../assets/shaders/water.vert");
@@ -61,6 +69,7 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut render_graph: ResMut<RenderGraph>,
     asset_server: Res<AssetServer>,
+    weather: Res<Weather>,
 ) {
     // Create a new shader pipeline
     let pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
@@ -80,6 +89,12 @@ fn setup(
     ).unwrap();
 
     // let palmtree = asset_server.load("palmera.glb");
+
+    let mut water = water::Water {
+        waves: water::get_waves(weather.wave_intensity),
+    };
+    water::set_waves(&mut water, weather.wave_intensity);
+    println!("{:?}", water.waves);
 
     // Setup our world
     commands
@@ -121,11 +136,13 @@ fn setup(
         })
         .with(water_materials.add(WaterMaterial {
             time: 0.,
-            intensity: 20.,
-            color: Vec4::new(0.1, 0.8, 0.5, 1.0),
+            color: Vec4::new(0.1, 0.0, 0.5, 1.0),
             camera: Vec3::new(0., 0., 0.),
+            wave1: water.waves[0].to_vec4(),
+            wave2: water.waves[1].to_vec4(),
+            wave3: water.waves[2].to_vec4(),
         }))
-        .with(Water)
+        .with(water)
 
         .spawn(PbrBundle {
             // mesh: asset_server.load("flota1.glb#Mesh0/Primitive0"),
@@ -158,27 +175,37 @@ fn setup(
         });
 }
 
-fn water_update(
+fn water_update_system(
     time: Res<Time>,
+    // weather: Res<Weather>,
     mut water_mats: ResMut<Assets<WaterMaterial>>,
     water_material_query: Query<&Handle<WaterMaterial>>,
-    mut water_transform_query: Query<(&mut Water, &mut Transform)>,
+    mut water_transform_query: Query<(&mut water::Water, &mut Transform)>,
     camera_query: Query<(&Transform, &Camera)>,
     boat_query: Query<(&Transform, &PlayerBoat)>,
 ) {
-    if let Some(water) = water_material_query.iter().next()
+    if let Some(water_material) = water_material_query.iter().next()
             .and_then(|water_handle| water_mats.get_mut(water_handle))
     {
-        water.time = time.seconds_since_startup as f32 * WAVE_SPEED;
+        water_material.time = time.seconds_since_startup as f32 * WAVE_SPEED;
+
+
         if let Some((transform, _)) = camera_query.iter().next() {
-            water.camera = transform.translation;
+            water_material.camera = transform.translation;
         }
 
         // get boat transform
         if let Some((boat_transform, _)) = boat_query.iter().next() {
-            if let Some((_, mut water_transform)) = water_transform_query.iter_mut().next() {
+            if let Some((water, mut water_transform)) = water_transform_query.iter_mut().next() {
+
+                // TODO: make weather_update_system
+                // water::set_waves(&mut water, weather.wave_intensity);
+                // water_material.wave1 = water.waves[0].to_vec4();
+                // water_material.wave2 = water.waves[1].to_vec4();
+                // water_material.wave3 = water.waves[2].to_vec4();
+
                 water_transform.translation = boat_transform.translation;
-                let height = water::height_at_point(
+                let height = water.height_at_point(
                     Vec2::new(boat_transform.translation.x, boat_transform.translation.y),
                     time.seconds_since_startup as f32 * WAVE_SPEED
                 );
@@ -285,11 +312,11 @@ fn camera_system(
 fn wave_probe_system(
     time: Res<Time>,
     mut wave_probes_query: Query<(&WaveProbe, &mut Transform)>,
-    water_query: Query<(&Water, &Transform)>,
+    water_query: Query<(&water::Water, &Transform)>,
 ) {
-    if let Some((_, water_transform)) = water_query.iter().next() {
+    if let Some((water, water_transform)) = water_query.iter().next() {
         for (_, mut transform) in wave_probes_query.iter_mut() {
-            let height = water::height_at_point(
+            let height = water.height_at_point(
                 Vec2::new(transform.translation.x * 1., transform.translation.z * 1.),
                 time.seconds_since_startup as f32 * WAVE_SPEED
             );
