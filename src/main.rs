@@ -79,9 +79,11 @@ fn setup(
         base::node::MAIN_PASS,
     ).unwrap();
 
+    // let palmtree = asset_server.load("palmera.glb");
+
     // Setup our world
     commands
-        // .spawn_scene(asset_server.load("countach.gltf"))
+        // .spawn_scene(asset_server.load("palmera.glb"))
         .spawn(PbrBundle {
             // mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
             mesh: asset_server.load("flota1.glb#Mesh0/Primitive0"),
@@ -97,6 +99,12 @@ fn setup(
             ..Default::default()
         })
         .with(WaveProbe)
+        // .spawn(PbrBundle {
+            // mesh: asset_server.load("palmera.glb"),
+            // material: materials.add(Color::rgb(0.8, 0.5, 0.0).into()),
+            // transform: Transform::from_translation(Vec3::new(-5.0, 0.0, 5.0)),
+            // ..Default::default()
+        // })
 
         .spawn(LightBundle {
             transform: Transform::from_translation(Vec3::new(4.0, 50.0, 4.0)),
