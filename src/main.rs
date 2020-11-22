@@ -18,7 +18,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_asset::<WaterMaterial>()
         .add_resource(Weather {
-            wave_intensity: 25.,
+            wave_intensity: 50.,
         })
         .add_startup_system(setup.system())
         .add_system(bevy::input::system::exit_on_esc_system.system())
@@ -94,7 +94,6 @@ fn setup(
         waves: water::get_waves(weather.wave_intensity),
     };
     water::set_waves(&mut water, weather.wave_intensity);
-    println!("{:?}", water.waves);
 
     // Setup our world
     commands
@@ -315,12 +314,18 @@ fn wave_probe_system(
     water_query: Query<(&water::Water, &Transform)>,
 ) {
     if let Some((water, water_transform)) = water_query.iter().next() {
-        for (_, mut transform) in wave_probes_query.iter_mut() {
-            let height = water.height_at_point(
+        for (_probe, mut transform) in wave_probes_query.iter_mut() {
+            let wavedata = water.wave_data_at_point(
                 Vec2::new(transform.translation.x * 1., transform.translation.z * 1.),
                 time.seconds_since_startup as f32 * WAVE_SPEED
             );
-            transform.translation.y = height + water_transform.translation.y;
+            transform.translation.y = wavedata.position.y + water_transform.translation.y;
+
+            // transform.rotation = transform
+                // .looking_at(transform.translation
+                            // + wavedata.normal,
+                            // Vec3::unit_y()).rotation;
+            // transform.rotation = Quat::
         }
     }
 }

@@ -32,40 +32,27 @@ layout(set = 1, binding = 6) uniform WaterMaterial_wave3 {
 float sine_noise(float, float);
 // https://catlikecoding.com/unity/tutorials/flow/waves/
 float snoise(vec2);
-struct WaveData {
-    vec3 position;
-    // vec3 normal;
-    vec3 binormal;
-    vec3 tangent;
-};
-WaveData gerstner_wave(vec3 position, vec3 prev_tangent, vec3 prev_binormal, vec4 props);
+void gerstner_wave(vec3 position, inout vec3 target, inout vec3 tangent, inout vec3 binormal, vec4 props);
 
 void main() {
     o_Vertex_Position = Vertex_Position;
     Original_World_Position = Model * vec4(Vertex_Position, 1.0);
 
-
-    /* float noise_x = sine_noise(gl_Position.x, time / 2); */
-    /* float noise_z = sine_noise(gl_Position.z, time / 4); */
-    /* gl_Position.y += noise_x + noise_z; */
-    /* Vertex_Normal = normalize(vec3(noise_x, 0., noise_z)); */
-
+    vec3 target = Original_World_Position.xyz;
     vec3 tangent = vec3(1, 0, 0);
     vec3 binormal = vec3(0, 0, 1);
-    WaveData wave = gerstner_wave(Original_World_Position.xyz, tangent, binormal, wave1);
-    wave = gerstner_wave(wave.position, wave.tangent, wave.binormal, wave2);
-    wave = gerstner_wave(wave.position, wave.tangent, wave.binormal, wave3);
+    gerstner_wave(Original_World_Position.xyz, target, tangent, binormal, wave1);
+    gerstner_wave(Original_World_Position.xyz, target, tangent, binormal, wave2);
+    gerstner_wave(Original_World_Position.xyz, target, tangent, binormal, wave3);
 
     /* float noise_x = sine_noise(Original_World_Position.x, time / 2); */
     /* float noise_z = sine_noise(Original_World_Position.z, time / 4); */
     /* wave.position.y += noise_x + noise_z; */
 
-    World_Position = vec4(wave.position, 1);
-    /* World_Position = Original_World_Position; */
-    /* World_Position.y = abs(World_Position.x / 2); */
+    World_Position = vec4(target, 1);
     gl_Position = ViewProj * World_Position;
 
-    Vertex_Normal = normalize(cross(wave.binormal, wave.tangent));
+    Vertex_Normal = normalize(cross(binormal, tangent));
 }
 
 float sine_noise(float v, float time) {
@@ -79,10 +66,11 @@ float rand(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 
-WaveData gerstner_wave(
+void gerstner_wave(
     vec3 position,
-    vec3 prev_tangent,
-    vec3 prev_binormal,
+    inout vec3 target,
+    inout vec3 tangent,
+    inout vec3 binormal,
     vec4 props
 ) {
     vec2 d = normalize(props.xy);
@@ -92,28 +80,25 @@ WaveData gerstner_wave(
     float k = 2 * M_PI / wavelength;
     float c = sqrt(9.8 / k); // Wave speed
     float f = k * (dot(d, position.xz) - c * time);
-    float amp_noise = (1 + snoise(position.xz / 10 + vec2(time*0.1, 0)) * 0.6);
+    /* float amp_noise = (1 + snoise(position.xz / 10 + vec2(time*0.1, 0)) * 0.6); */
     float a = steepness / k;// * amp_noise;
 
-    vec3 new_pos = vec3(
-        position.x + d.x * (a * cos(f)),
-        position.y + a * sin(f),
-        position.z + d.y * (a * cos(f))
+    target = target + vec3(
+        d.x * (a * cos(f)),
+        a * sin(f),
+        d.y * (a * cos(f))
     );
 
-    vec3 tangent = prev_tangent + vec3(
+    tangent = tangent + vec3(
         1 - d.x * d.x * (steepness * sin(f)),
         d.x * (steepness * cos(f)),
         -d.x * d.y * (steepness * sin(f))
     );
-    vec3 binormal = prev_binormal + vec3(
+    binormal = binormal + vec3(
         -d.x * d.y * (steepness * sin(f)),
         d.y * (steepness * cos(f)),
         1 - d.y * d.y * (steepness * sin(f))
     );
-    // vec3 normal = normalize(cross(binormal, tangent));
-
-    return WaveData(new_pos, binormal, tangent);
 }
 
 

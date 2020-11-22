@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use std::ops::AddAssign;
 
 pub struct Water {
     pub waves: [WaveProperties; 3],
@@ -8,9 +9,19 @@ impl Water {
         let input_point = Vec3::new(point.x, 0., point.y);
 
         let first_pass = wave_sequence(input_point, time, &self.waves);
-        first_pass.y
+        first_pass.position.y
+    }
+    pub fn wave_data_at_point(self: &Self, point: Vec2, time: f32) -> WaveData{
+        let input_point = Vec3::new(point.x, 0., point.y);
+
+        wave_sequence(input_point, time, &self.waves)
     }
 }
+pub struct WaveData {
+    pub position: Vec3,
+    pub normal: Vec3,
+}
+
 
 #[derive(Debug)]
 pub struct WaveProperties {
@@ -32,8 +43,11 @@ impl WaveProperties {
 fn gerstner_wave(
     position: Vec3,
     time: f32,
+    target: &mut Vec3,
+    tangent: &mut Vec3,
+    binormal: &mut Vec3,
     props: &WaveProperties
-) -> Vec3 {
+) -> () {
     let d = props.direction.normalize();
 
     let position_xz = Vec2::new(position.x, position.z);
@@ -43,19 +57,35 @@ fn gerstner_wave(
     let amp_noise = 1.;
     let a = props.steepness / k * amp_noise;
 
-    Vec3::new(
-        position.x + d.x * (a * f.cos()),
-        position.y + a * f.sin(),
-        position.z + d.y * (a * f.cos())
-    )
+    target.add_assign(Vec3::new(
+        d.x * (a * f.cos()),
+        a * f.sin(),
+        d.y * (a * f.cos())
+    ));
+
+    tangent.add_assign(Vec3::new(
+        1. - d.x * d.x * (props.steepness * f.sin()),
+        d.x * (props.steepness * f.cos()),
+        -d.x * d.y * (props.steepness * f.sin())
+    ));
+    binormal.add_assign(Vec3::new(
+        -d.x * d.y * (props.steepness * f.sin()),
+        d.y * (props.steepness * f.cos()),
+        1. - d.y * d.y * (props.steepness * f.sin())
+    ));
 }
 
-fn wave_sequence(position: Vec3, time: f32, waves: &[WaveProperties; 3]) -> Vec3 {
-    let mut position = position;
+fn wave_sequence(position: Vec3, time: f32, waves: &[WaveProperties; 3]) -> WaveData {
+    let mut target = position.clone();
+    let mut tangent = Vec3::unit_x();
+    let mut binormal = Vec3::unit_z();
     for wave in waves {
-        position = gerstner_wave(position, time, wave);
+        gerstner_wave(position, time, &mut target, &mut tangent, &mut binormal, wave);
     }
-    position
+    WaveData {
+        position: target,
+        normal: binormal.cross(tangent).normalize(),
+    }
 }
 
 pub fn set_waves(water: &mut Water, intensity: f32) -> () {
