@@ -24,7 +24,6 @@ const float FADE_DROPOFF = 0.75;
 void main() {
     float specular_intensity = .1;
     vec3 specular = pow(dot(
-        /* o_Vertex_Position, */
         normalize((camera - World_Position.xyz)),
         reflect(light_direction, Vertex_Normal)
     ), specular_intensity) * vec3(1.0, 1.0, 1.0);

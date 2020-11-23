@@ -39,6 +39,7 @@ struct PlayerBoat {
     steer: f32,
 }
 struct WaveProbe;
+struct WaterFloor;
 
 #[derive(RenderResources, Default, TypeUuid)]
 #[uuid = "0320b9b8-b3a3-4baa-8bfa-c94008177b17"]
@@ -89,6 +90,14 @@ fn setup(
     ).unwrap();
 
     // let palmtree = asset_server.load("palmera.glb");
+    let mut palmtree_transform = Transform::from_translation(Vec3::new(-5.0, -3.0, 5.0));
+    palmtree_transform.scale = Vec3::new(4., 4., 4.);
+    let palmtree = PbrBundle {
+        mesh: asset_server.load("palmera.glb#Mesh3/Primitive0"),
+        // material: materials.add(Color::rgb(0.8, 0.5, 0.0).into()),
+        transform: palmtree_transform,
+        ..Default::default()
+    };
 
     let mut water = water::Water {
         waves: water::get_waves(weather.wave_intensity),
@@ -113,12 +122,9 @@ fn setup(
             ..Default::default()
         })
         .with(WaveProbe)
-        // .spawn(PbrBundle {
-            // mesh: asset_server.load("palmera.glb"),
-            // material: materials.add(Color::rgb(0.8, 0.5, 0.0).into()),
-            // transform: Transform::from_translation(Vec3::new(-5.0, 0.0, 5.0)),
-            // ..Default::default()
-        // })
+
+        .spawn(palmtree)
+        .with(WaterFloor)
 
         .spawn(LightBundle {
             transform: Transform::from_translation(Vec3::new(4.0, 50.0, 4.0)),
@@ -182,6 +188,7 @@ fn water_update_system(
     mut water_transform_query: Query<(&mut water::Water, &mut Transform)>,
     camera_query: Query<(&Transform, &Camera)>,
     boat_query: Query<(&Transform, &PlayerBoat)>,
+    mut water_floored_query: Query<(&mut WaterFloor, &mut Transform)>,
 ) {
     if let Some(water_material) = water_material_query.iter().next()
             .and_then(|water_handle| water_mats.get_mut(water_handle))
@@ -209,6 +216,10 @@ fn water_update_system(
                     time.seconds_since_startup as f32 * WAVE_SPEED
                 );
                 water_transform.translation.y = -height;
+
+                if let Some((_, mut transform)) = water_floored_query.iter_mut().next() {
+                    transform.translation.y = height;
+                }
             }
         }
     }
@@ -321,6 +332,8 @@ fn wave_probe_system(
             );
             transform.translation.y = wavedata.position.y + water_transform.translation.y;
 
+            let trans = Transform::identity().looking_at(wavedata.tangent, Vec3::unit_y());
+            transform.rotation = trans.rotation;
             // transform.rotation = transform
                 // .looking_at(transform.translation
                             // + wavedata.normal,

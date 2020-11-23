@@ -20,6 +20,7 @@ impl Water {
 pub struct WaveData {
     pub position: Vec3,
     pub normal: Vec3,
+    pub tangent: Vec3,
 }
 
 
@@ -64,14 +65,14 @@ fn gerstner_wave(
     ));
 
     tangent.add_assign(Vec3::new(
-        1. - d.x * d.x * (props.steepness * f.sin()),
+        -d.x * d.x * (props.steepness * f.sin()),
         d.x * (props.steepness * f.cos()),
         -d.x * d.y * (props.steepness * f.sin())
     ));
     binormal.add_assign(Vec3::new(
         -d.x * d.y * (props.steepness * f.sin()),
         d.y * (props.steepness * f.cos()),
-        1. - d.y * d.y * (props.steepness * f.sin())
+        -d.y * d.y * (props.steepness * f.sin())
     ));
 }
 
@@ -85,6 +86,7 @@ fn wave_sequence(position: Vec3, time: f32, waves: &[WaveProperties; 3]) -> Wave
     WaveData {
         position: target,
         normal: binormal.cross(tangent).normalize(),
+        tangent,
     }
 }
 
