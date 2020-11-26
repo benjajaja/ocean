@@ -4,12 +4,13 @@ use bevy::{
         pipeline::{PipelineDescriptor, RenderPipeline},
         render_graph::{base, AssetRenderResourcesNode, RenderGraph},
         renderer::RenderResources,
+        camera::{PerspectiveProjection},
         shader::{ShaderStage, ShaderStages},
     },
     type_registry::TypeUuid,
 };
 mod water;
-// use rand::prelude::*;
+mod stripe;
 
 /// This example illustrates how to add a custom attribute to a mesh and use it in a custom shader.
 fn main() {
@@ -17,11 +18,15 @@ fn main() {
         .add_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins)
         .add_asset::<WaterMaterial>()
+        .add_asset::<SkyMaterial>()
+        .add_resource(ClearColor(Color::rgb(0., 0., 0.)))
         .add_resource(Weather {
             wave_intensity: 50.,
         })
         .add_startup_system(setup.system())
+        .add_startup_system(spawn_sky.system())
         .add_system(bevy::input::system::exit_on_esc_system.system())
+
         .add_system(water_update_system.system())
         .add_system(keyboard_input_system.system())
         .add_system(boat_physics_system.system())
@@ -30,7 +35,7 @@ fn main() {
         .run();
 }
 
-struct Camera {
+struct CameraTracker {
     bobber: Transform,
 }
 struct Player;
@@ -52,12 +57,18 @@ struct WaterMaterial {
     pub wave3: Vec4,
 }
 
+#[derive(RenderResources, Default, TypeUuid)]
+#[uuid = "0320b9b8-dead-beef-8bfa-c94008177b17"]
+struct SkyMaterial {}
+
 struct Weather {
     wave_intensity: f32,
 }
 
-const VERTEX_SHADER: &str = include_str!("../assets/shaders/water.vert");
-const FRAGMENT_SHADER: &str = include_str!("../assets/shaders/water.frag");
+const WATER_VERTEX_SHADER: &str = include_str!("../assets/shaders/water.vert");
+const WATER_FRAGMENT_SHADER: &str = include_str!("../assets/shaders/water.frag");
+const SKY_VERTEX_SHADER: &str = include_str!("../assets/shaders/sky.vert");
+const SKY_FRAGMENT_SHADER: &str = include_str!("../assets/shaders/sky.frag");
 
 const WAVE_SPEED: f32 = 0.8;
 
@@ -72,22 +83,19 @@ fn setup(
     asset_server: Res<AssetServer>,
     weather: Res<Weather>,
 ) {
-    // Create a new shader pipeline
-    let pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
-        vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, VERTEX_SHADER)),
-        fragment: Some(shaders.add(Shader::from_glsl(ShaderStage::Fragment, FRAGMENT_SHADER))),
+    let water_pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
+        vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, WATER_VERTEX_SHADER)),
+        fragment: Some(shaders.add(Shader::from_glsl(ShaderStage::Fragment, WATER_FRAGMENT_SHADER))),
     }));
-
-    // Add an AssetRenderResourcesNode to our Render Graph. This will bind WaterMaterial resources to our shader
     render_graph.add_system_node(
         "WaterMaterial",
         AssetRenderResourcesNode::<WaterMaterial>::new(true),
     );
-    // Add a Render Graph edge connecting our new "my_material" node to the main pass node. This ensures "my_material" runs before the main pass
     render_graph.add_node_edge(
         "WaterMaterial",
         base::node::MAIN_PASS,
     ).unwrap();
+
 
     // let palmtree = asset_server.load("palmera.glb");
     let mut palmtree_transform = Transform::from_translation(Vec3::new(-5.0, -3.0, 5.0));
@@ -104,6 +112,14 @@ fn setup(
     };
     water::set_waves(&mut water, weather.wave_intensity);
 
+    let projection = PerspectiveProjection::default();
+    let camera = Camera3dBundle {
+        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0))
+                .looking_at(Vec3::new(0.0, 5.0, 1000.0), Vec3::unit_y()),
+        perspective_projection: projection,
+        ..Default::default()
+    };
+
     // Setup our world
     commands
         // .spawn_scene(asset_server.load("palmera.glb"))
@@ -111,20 +127,29 @@ fn setup(
             // mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
             mesh: asset_server.load("flota1.glb#Mesh0/Primitive0"),
             material: materials.add(Color::rgb(0.0, 0.9, 0.6).into()),
+            // material: materials.add(StandardMaterial {
+                // shaded: false,
+                // ..Default::default()
+            // }),
             transform: Transform::from_translation(Vec3::new(5.0, 0.0, 0.0)),
             ..Default::default()
         })
         .with(WaveProbe)
+
         .spawn(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 0.5 })),
-            material: materials.add(Color::rgb(0.8, 0.5, 0.0).into()),
-            transform: Transform::from_translation(Vec3::new(-5.0, 0.0, 5.0)),
+            material: materials.add(StandardMaterial {
+                ..Default::default()
+            }),
+            transform: Transform::from_translation(Vec3::new(-10.0, 0.0, 5.0)),
             ..Default::default()
         })
         .with(WaveProbe)
 
+        // .with(WaveProbe)
+
         .spawn(palmtree)
-        .with(WaterFloor)
+        // .with(WaterFloor)
 
         .spawn(LightBundle {
             transform: Transform::from_translation(Vec3::new(4.0, 50.0, 4.0)),
@@ -134,7 +159,7 @@ fn setup(
         .spawn(MeshBundle {
             mesh: asset_server.load("plano.glb#Mesh0/Primitive0"),
             render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::new(
-                pipeline_handle,
+                water_pipeline_handle,
             )]),
             transform: Transform::from_scale(Vec3::new(100.0, 100.0, 100.0)),
             ..Default::default()
@@ -170,14 +195,46 @@ fn setup(
         })
 
 
-        .spawn(Camera3dBundle {
-            transform: Transform::from_translation(Vec3::new(0.0, 6.0, -15.0))
-                    .looking_at(Vec3::new(0.0, 5.0, 0.0), Vec3::unit_y()),
-            ..Default::default()
-        })
-        .with(Camera {
+        .spawn(camera)
+        .with(CameraTracker {
             bobber: Transform::from_translation(Vec3::new(0.0, 5.0, 0.0)),
         });
+
+}
+
+fn spawn_sky(
+    commands: &mut Commands,
+    mut pipelines: ResMut<Assets<PipelineDescriptor>>,
+    mut shaders: ResMut<Assets<Shader>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut sky_materials: ResMut<Assets<SkyMaterial>>,
+    mut render_graph: ResMut<RenderGraph>,
+) {
+    let sky_pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
+        vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, SKY_VERTEX_SHADER)),
+        fragment: Some(shaders.add(Shader::from_glsl(ShaderStage::Fragment, SKY_FRAGMENT_SHADER))),
+    }));
+    // Add an AssetRenderResourcesNode to our Render Graph. This will bind WaterMaterial resources to our shader
+    render_graph.add_system_node(
+        "SkyMaterial",
+        AssetRenderResourcesNode::<SkyMaterial>::new(true),
+    );
+    // Add a Render Graph edge connecting our new "my_material" node to the main pass node. This ensures "my_material" runs before the main pass
+    render_graph.add_node_edge(
+        "SkyMaterial",
+        base::node::MAIN_PASS,
+    ).unwrap();
+
+    let render_pipelines = RenderPipelines::from_pipelines(vec![RenderPipeline::new(
+        sky_pipeline_handle,
+    )]);
+
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(stripe::stars()),
+        render_pipelines: render_pipelines,
+        ..Default::default()
+    })
+    .with(sky_materials.add(SkyMaterial {}));
 }
 
 fn water_update_system(
@@ -186,7 +243,7 @@ fn water_update_system(
     mut water_mats: ResMut<Assets<WaterMaterial>>,
     water_material_query: Query<&Handle<WaterMaterial>>,
     mut water_transform_query: Query<(&mut water::Water, &mut Transform)>,
-    camera_query: Query<(&Transform, &Camera)>,
+    camera_query: Query<(&Transform, &CameraTracker)>,
     boat_query: Query<(&Transform, &PlayerBoat)>,
     mut water_floored_query: Query<(&mut WaterFloor, &mut Transform)>,
 ) {
@@ -296,20 +353,21 @@ const CAMERA_ROTATION_FACTOR: f32 = 10.0;
 fn camera_system(
     time: Res<Time>,
     boat_query: Query<(&PlayerBoat, &Transform)>,
-    mut camera_query: Query<(&mut Transform, &mut Camera)>,
+    mut camera_query: Query<(&mut Transform, &mut CameraTracker)>,
 ) {
     if let Some((mut transform, mut camera)) = camera_query.iter_mut().next() {
-        if let Some((_boat, boat_transform)) = boat_query.iter().next() {
+        if let Some((boat, boat_transform)) = boat_query.iter().next() {
             camera.bobber.translation = boat_transform.translation.clone();
             camera.bobber.rotation = camera.bobber.rotation.slerp(
                 boat_transform.rotation,
                 time.delta_seconds * CAMERA_ROTATION_FACTOR
             );
 
-            transform.translation = camera.bobber.translation +
-                camera.bobber.rotation.mul_vec3(
+            transform.translation = camera.bobber.translation
+                + camera.bobber.rotation.mul_vec3(
                     Vec3::new(0.0, 5.0, -15.0)
-                );
+                )
+                + Vec3::new(0.0, -boat.thrust * 1.5, 0.0);
 
             transform.rotation = transform.looking_at(
                 camera.bobber.translation,
