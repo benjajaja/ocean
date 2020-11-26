@@ -113,11 +113,9 @@ fn setup(
     };
     water::set_waves(&mut water, weather.wave_intensity);
 
-    let projection = PerspectiveProjection::default();
     let camera = Camera3dBundle {
         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0))
                 .looking_at(Vec3::new(0.0, 5.0, 1000.0), Vec3::unit_y()),
-        perspective_projection: projection,
         ..Default::default()
     };
 
@@ -386,7 +384,7 @@ fn camera_system(
 
             let mut looking_at = camera.bobber.translation;
             if let Some(look) = camera.looking_up {
-                looking_at += Vec3::new(0., 100. * look, 0.);
+                looking_at += Vec3::new(0., (100. * look).min(100.), 0.);
                 camera.looking_up = Some(look + time.delta_seconds);
             }
             transform.rotation = transform.looking_at(
