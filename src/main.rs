@@ -37,6 +37,7 @@ fn main() {
 
 struct CameraTracker {
     bobber: Transform,
+    looking_up: Option<f32>,
 }
 struct Player;
 struct PlayerBoat {
@@ -176,7 +177,7 @@ fn setup(
 
         .spawn(PbrBundle {
             // mesh: asset_server.load("flota1.glb#Mesh0/Primitive0"),
-            material: materials.add(Color::rgb(0.2, 0.8, 0.6).into()),
+            // material: materials.add(Color::rgb(0.2, 0.8, 0.6).into()),
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             ..Default::default()
         })
@@ -197,7 +198,8 @@ fn setup(
 
         .spawn(camera)
         .with(CameraTracker {
-            bobber: Transform::from_translation(Vec3::new(0.0, 5.0, 0.0)),
+            bobber: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+            looking_up: None,
         });
 
 }
@@ -288,9 +290,8 @@ fn keyboard_input_system(
     time: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
     mut boat_query: Query<&mut PlayerBoat>,
+    mut camera_query: Query<(&mut Transform, &mut CameraTracker)>,
 ) {
-    // if let Some(mut boat) = &mut boat_query.iter_mut().next() {
-    // }
     for mut boat in &mut boat_query.iter_mut() {
         let mut print = false;
 
@@ -321,6 +322,16 @@ fn keyboard_input_system(
         } else if boat.steer > 0.0 {
             boat.steer = (boat.steer - INPUT_DECAY * time.delta_seconds).max(0.0);
             print = true;
+        }
+
+        if keyboard_input.just_pressed(KeyCode::Space) {
+            if let Some((_transform, mut camera)) = camera_query.iter_mut().next() {
+                camera.looking_up = Some(0.);
+            }
+        } else if keyboard_input.just_released(KeyCode::Space) {
+            if let Some((_transform, mut camera)) = camera_query.iter_mut().next() {
+                camera.looking_up = None;
+            }
         }
 
         if print {
@@ -357,7 +368,11 @@ fn camera_system(
 ) {
     if let Some((mut transform, mut camera)) = camera_query.iter_mut().next() {
         if let Some((boat, boat_transform)) = boat_query.iter().next() {
-            camera.bobber.translation = boat_transform.translation.clone();
+            let boat_translation = boat_transform.translation;
+
+            camera.bobber.translation.x = boat_translation.x;
+            camera.bobber.translation.z = boat_translation.z;
+
             camera.bobber.rotation = camera.bobber.rotation.slerp(
                 boat_transform.rotation,
                 time.delta_seconds * CAMERA_ROTATION_FACTOR
@@ -369,10 +384,22 @@ fn camera_system(
                 )
                 + Vec3::new(0.0, -boat.thrust * 1.5, 0.0);
 
+            let mut looking_at = camera.bobber.translation;
+            if let Some(look) = camera.looking_up {
+                looking_at += Vec3::new(0., 100. * look, 0.);
+                camera.looking_up = Some(look + time.delta_seconds);
+            }
             transform.rotation = transform.looking_at(
-                camera.bobber.translation,
+                looking_at,
                 Vec3::unit_y()
             ).rotation;
+
+            // if camera.looking_up {
+                // transform.rotation = transform.rotation.slerp(
+                    // Quat::from_rotation_x(std::f64::consts::PI as f32 / 2.),
+                    // time.delta_seconds * CAMERA_ROTATION_FACTOR,
+                // );
+            // }
         }
     }
 }
