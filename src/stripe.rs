@@ -6,6 +6,7 @@ use bevy::{
     },
 };
 use rand::prelude::*;
+use rand::distributions::{Distribution, Uniform};
 
 fn plane(size: u32) -> Mesh {
     const CBRT3: f32 = 1.44224957031; // cubic root of 3
@@ -82,6 +83,9 @@ pub fn stars() -> Mesh {
     let offset = h / 3.;
 
     let mut rng = rand::thread_rng();
+    const circle_radians: f32 = std::f32::consts::PI * 2.;
+    let dist = Uniform::from(0.0..=circle_radians);
+
     let star_points = vec![
         Vec3::new(-0.5 * size, 0., STAR_DISTANCE),
         Vec3::new(0., h, STAR_DISTANCE),
@@ -93,10 +97,11 @@ pub fn stars() -> Mesh {
 
     for i in 0..1000 {
         let quat = Quat::from_rotation_ypr(
-            (rng.next_u32() as f64 * std::f64::consts::PI * 2.) as f32,
-            (rng.next_u32() as f64 * std::f64::consts::PI * 2.) as f32,
-            (rng.next_u32() as f64 * std::f64::consts::PI * 2.) as f32,
+            dist.sample(&mut rng),
+            dist.sample(&mut rng),
+            dist.sample(&mut rng),
         );
+
         for point in &star_points {
             let rotated = quat.mul_vec3(*point);
             vertices.push(([rotated.x, rotated.y, rotated.z], normal(), [1., 0.]));
