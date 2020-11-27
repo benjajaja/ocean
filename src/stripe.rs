@@ -75,7 +75,7 @@ pub fn stars() -> Mesh {
     fn normal() -> [f32; 3] {
         [0.0, 1.0, 0.1]
     }
-    let size = 10.;
+    let size = 5.;
 
     let mut vertices: Vec<([f32; 3], [f32; 3], [f32; 2])> = vec![];
     let mut tri_indices: Vec<u32> = vec![];
@@ -86,12 +86,17 @@ pub fn stars() -> Mesh {
     let mut quat_rng = RandomRotation::new();
 
     let star_points = vec![
-        Vec3::new(-0.5 * size, 0., STAR_DISTANCE),
-        Vec3::new(0., h, STAR_DISTANCE),
-        Vec3::new(0.5 * size , 0., STAR_DISTANCE),
-        Vec3::new(-0.5 * size, h - offset, STAR_DISTANCE),
-        Vec3::new(0., -offset, STAR_DISTANCE),
-        Vec3::new(0.5 * size , h - offset, STAR_DISTANCE),
+        // Vec3::new(-0.5 * size, 0., STAR_DISTANCE),
+        // Vec3::new(0., h, STAR_DISTANCE),
+        // Vec3::new(0.5 * size , 0., STAR_DISTANCE),
+        // Vec3::new(-0.5 * size, h - offset, STAR_DISTANCE),
+        // Vec3::new(0., -offset, STAR_DISTANCE),
+        // Vec3::new(0.5 * size , h - offset, STAR_DISTANCE),
+
+        Vec3::new(-0.5 * size, -0.5 * size, STAR_DISTANCE),
+        Vec3::new(-0.5 * size, 0.5 * size, STAR_DISTANCE),
+        Vec3::new(0.5 * size, -0.5 * size, STAR_DISTANCE),
+        Vec3::new(0.5 * size, 0.5 * size, STAR_DISTANCE),
     ];
 
     for i in 0..1000 {
@@ -101,14 +106,14 @@ pub fn stars() -> Mesh {
                 let rotated = quat.mul_vec3(*point);
                 vertices.push(([rotated.x, rotated.y, rotated.z], normal(), [1., 0.]));
             }
-            let index_offset = i * 6;
+            let index_offset = i * 4;
             tri_indices.append(&mut vec![
                                index_offset + 0,
                                index_offset + 1,
                                index_offset + 2,
+                               index_offset + 1,
                                index_offset + 3,
-                               index_offset + 5,
-                               index_offset + 4,
+                               index_offset + 2,
             ]);
         }
     }
