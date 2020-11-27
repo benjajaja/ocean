@@ -4,7 +4,6 @@ use bevy::{
         pipeline::{PipelineDescriptor, RenderPipeline},
         render_graph::{base, AssetRenderResourcesNode, RenderGraph},
         renderer::RenderResources,
-        camera::{PerspectiveProjection},
         shader::{ShaderStage, ShaderStages},
     },
     type_registry::TypeUuid,
@@ -61,6 +60,7 @@ struct WaterMaterial {
 #[derive(RenderResources, Default, TypeUuid)]
 #[uuid = "0320b9b8-dead-beef-8bfa-c94008177b17"]
 struct SkyMaterial {}
+struct SkyDome;
 
 struct Weather {
     wave_intensity: f32,
@@ -234,7 +234,8 @@ fn spawn_sky(
         render_pipelines: render_pipelines,
         ..Default::default()
     })
-    .with(sky_materials.add(SkyMaterial {}));
+    .with(sky_materials.add(SkyMaterial {}))
+    .with(SkyDome);
 }
 
 fn water_update_system(
@@ -341,6 +342,7 @@ fn keyboard_input_system(
 fn boat_physics_system(
     time: Res<Time>,
     mut boat_query: Query<(&mut PlayerBoat, &mut Transform)>,
+    mut skydome_query: Query<(&mut SkyDome, &mut Transform)>,
 ) {
     if let Some((boat, mut transform)) = boat_query.iter_mut().next() {
         if boat.steer != 0.0 || boat.thrust != 0.0 {
@@ -353,6 +355,13 @@ fn boat_physics_system(
             let jump = transform.rotation.mul_vec3(thrust_vector);
 
             transform.translation += jump;
+
+            if let Some((_sky, mut sky_transform)) = skydome_query.iter_mut().next() {
+                let right_angle = Quat::from_rotation_y(std::f32::consts::PI / 2.);
+                let rotation_axis = right_angle.mul_vec3(jump);
+                let rotation = Quat::from_axis_angle(rotation_axis, -jump.length() * 0.01);
+                sky_transform.rotation = rotation.mul_quat(sky_transform.rotation).normalize();
+            }
         }
 
     }
@@ -391,13 +400,6 @@ fn camera_system(
                 looking_at,
                 Vec3::unit_y()
             ).rotation;
-
-            // if camera.looking_up {
-                // transform.rotation = transform.rotation.slerp(
-                    // Quat::from_rotation_x(std::f64::consts::PI as f32 / 2.),
-                    // time.delta_seconds * CAMERA_ROTATION_FACTOR,
-                // );
-            // }
         }
     }
 }
@@ -425,4 +427,3 @@ fn wave_probe_system(
         }
     }
 }
-
