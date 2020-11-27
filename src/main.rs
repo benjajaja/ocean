@@ -74,7 +74,9 @@ struct WaterMaterial {
 
 #[derive(RenderResources, Default, TypeUuid)]
 #[uuid = "0320b9b8-dead-beef-8bfa-c94008177b17"]
-struct SkyMaterial {}
+struct SkyMaterial {
+    texture: Handle<Texture>,
+}
 struct SkyDome;
 
 struct Weather {
@@ -224,21 +226,22 @@ fn spawn_sky(
     mut meshes: ResMut<Assets<Mesh>>,
     mut sky_materials: ResMut<Assets<SkyMaterial>>,
     mut render_graph: ResMut<RenderGraph>,
+    asset_server: Res<AssetServer>,
 ) {
     let sky_pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
         vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, SKY_VERTEX_SHADER)),
         fragment: Some(shaders.add(Shader::from_glsl(ShaderStage::Fragment, SKY_FRAGMENT_SHADER))),
     }));
-    // Add an AssetRenderResourcesNode to our Render Graph. This will bind WaterMaterial resources to our shader
     render_graph.add_system_node(
         "SkyMaterial",
         AssetRenderResourcesNode::<SkyMaterial>::new(true),
     );
-    // Add a Render Graph edge connecting our new "my_material" node to the main pass node. This ensures "my_material" runs before the main pass
     render_graph.add_node_edge(
         "SkyMaterial",
         base::node::MAIN_PASS,
     ).unwrap();
+
+    let texture_handle: Handle<Texture> = asset_server.load("branding/bevy_logo_dark_big.png");
 
     let render_pipelines = RenderPipelines::from_pipelines(vec![RenderPipeline::new(
         sky_pipeline_handle,
@@ -249,7 +252,9 @@ fn spawn_sky(
         render_pipelines: render_pipelines,
         ..Default::default()
     })
-    .with(sky_materials.add(SkyMaterial {}))
+    .with(sky_materials.add(SkyMaterial {
+        texture: texture_handle,
+    }))
     .with(SkyDome);
 }
 
