@@ -6,6 +6,7 @@ use bevy::{
     },
 };
 use rand::prelude::*;
+use std::f32::consts::PI;
 use rand::distributions::{Distribution, Uniform};
 
 fn plane(size: u32) -> Mesh {
@@ -82,9 +83,7 @@ pub fn stars() -> Mesh {
     let h = size / 2. * CBRT3;
     let offset = h / 3.;
 
-    let mut rng = rand::thread_rng();
-    const circle_radians: f32 = std::f32::consts::PI * 2.;
-    let dist = Uniform::from(0.0..=circle_radians);
+    let mut quat_rng = RandomRotation::new();
 
     let star_points = vec![
         Vec3::new(-0.5 * size, 0., STAR_DISTANCE),
@@ -96,25 +95,22 @@ pub fn stars() -> Mesh {
     ];
 
     for i in 0..1000 {
-        let quat = Quat::from_rotation_ypr(
-            dist.sample(&mut rng),
-            dist.sample(&mut rng),
-            dist.sample(&mut rng),
-        );
+        if let Some(quat) = quat_rng.next() {
 
-        for point in &star_points {
-            let rotated = quat.mul_vec3(*point);
-            vertices.push(([rotated.x, rotated.y, rotated.z], normal(), [1., 0.]));
+            for point in &star_points {
+                let rotated = quat.mul_vec3(*point);
+                vertices.push(([rotated.x, rotated.y, rotated.z], normal(), [1., 0.]));
+            }
+            let index_offset = i * 6;
+            tri_indices.append(&mut vec![
+                               index_offset + 0,
+                               index_offset + 1,
+                               index_offset + 2,
+                               index_offset + 3,
+                               index_offset + 5,
+                               index_offset + 4,
+            ]);
         }
-        let index_offset = i * 6;
-        tri_indices.append(&mut vec![
-                           index_offset + 0,
-                           index_offset + 1,
-                           index_offset + 2,
-                           index_offset + 3,
-                           index_offset + 5,
-                           index_offset + 4,
-        ]);
     }
 
     let indices = Indices::U32(tri_indices);
@@ -137,5 +133,35 @@ pub fn stars() -> Mesh {
     mesh.set_attribute(Mesh::ATTRIBUTE_UV_0, VertexAttributeValues::from(uvs));
 
     mesh
+}
+
+struct RandomRotation {
+    rng: rand::prelude::ThreadRng,
+    dist: rand::distributions::Uniform<f32>,
+}
+
+impl RandomRotation {
+    fn new() -> Self {
+        let rng = rand::thread_rng();
+        RandomRotation {
+            rng,
+            dist: Uniform::from(0.0..1.0),
+        }
+    }
+}
+
+impl Iterator for RandomRotation {
+    type Item = Quat;
+    fn next(&mut self) -> Option<Quat> {
+        let u = self.dist.sample(&mut self.rng);
+        let v = self.dist.sample(&mut self.rng);
+        let w = self.dist.sample(&mut self.rng);
+        Some(Quat::from_xyzw(
+            (1. - u).sqrt() * (2. * PI * v).sin(),
+            (1. - u).sqrt() * (2. * PI * v).cos(),
+            u.sqrt() * (2. * PI * w).sin(),
+            u.sqrt() * (2. * PI * w).cos(),
+        ))
+    }
 }
 
