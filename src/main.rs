@@ -273,14 +273,25 @@ fn spawn_sky(
         sky_pipeline_handle,
     )]);
 
+    let sky_material = sky_materials.add(SkyMaterial {
+        texture: texture_handle,
+    });
+
     commands.spawn(PbrBundle {
         mesh: meshes.add(stripe::stars()),
-        render_pipelines: render_pipelines,
+        render_pipelines: render_pipelines.clone(),
         ..Default::default()
     })
-    .with(sky_materials.add(SkyMaterial {
-        texture: texture_handle,
-    }))
+    .with_children(|parent| {
+        parent.spawn(PbrBundle {
+            mesh: asset_server.load("palmera.glb#Mesh3/Primitive0"),
+            render_pipelines: render_pipelines,
+            transform: Transform::from_translation(Vec3::new(0., 0., 1000.))
+                * Transform::from_scale(Vec3::new(10., 10., 10.)),
+            ..Default::default()
+        });
+    })
+    .with(sky_material)
     .with(SkyDome);
 }
 
@@ -329,7 +340,7 @@ fn water_update_system(
     }
 }
 
-const INPUT_ACCEL: f32 = 2.0;
+const INPUT_ACCEL: f32 = 1.0;
 const INPUT_DECAY: f32 = 10.0;
 fn keyboard_input_system(
     time: Res<Time>,
@@ -397,7 +408,7 @@ fn boat_physics_system(
                 time.delta_seconds
             );
 
-            let thrust_vector = Vec3::new(0., 0., boat.thrust / 4.);
+            let thrust_vector = Vec3::new(0., 0., boat.thrust * 0.6);
             let jump = transform.rotation.mul_vec3(thrust_vector);
 
             transform.translation += jump;
