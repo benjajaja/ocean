@@ -36,8 +36,23 @@ fn main() {
 
 struct CameraTracker {
     bobber: Transform,
-    looking_up: Option<f32>,
+    looking_up: LookingUp,
 }
+enum LookingUp {
+    None,
+    LookingUp(f32),
+    LookingDown(f32),
+}
+impl LookingUp {
+    pub fn value(&self) -> f32 {
+        match *self {
+            LookingUp::None => 0.,
+            LookingUp::LookingUp(a) => a,
+            LookingUp::LookingDown(a) => a,
+        }
+    }
+}
+
 struct Player;
 struct PlayerBoat {
     thrust: f32,
@@ -197,7 +212,7 @@ fn setup(
         .spawn(camera)
         .with(CameraTracker {
             bobber: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
-            looking_up: None,
+            looking_up: LookingUp::None,
         });
 
 }
@@ -325,11 +340,11 @@ fn keyboard_input_system(
 
         if keyboard_input.just_pressed(KeyCode::Space) {
             if let Some((_transform, mut camera)) = camera_query.iter_mut().next() {
-                camera.looking_up = Some(0.);
+                camera.looking_up = LookingUp::LookingUp(camera.looking_up.value());
             }
         } else if keyboard_input.just_released(KeyCode::Space) {
             if let Some((_transform, mut camera)) = camera_query.iter_mut().next() {
-                camera.looking_up = None;
+                camera.looking_up = LookingUp::LookingDown(camera.looking_up.value());
             }
         }
 
@@ -392,10 +407,27 @@ fn camera_system(
                 + Vec3::new(0.0, -boat.thrust * 1.5, 0.0);
 
             let mut looking_at = camera.bobber.translation;
-            if let Some(look) = camera.looking_up {
-                looking_at += Vec3::new(0., (100. * look).min(100.), 0.);
-                camera.looking_up = Some(look + time.delta_seconds);
+            match camera.looking_up {
+                LookingUp::LookingUp(mut look) => {
+                    look += time.delta_seconds * 0.5;
+                    look = look.min(1.);
+                    looking_at += Vec3::new(0., 100. * look, 0.);
+                    camera.looking_up = LookingUp::LookingUp(look);
+                }
+                LookingUp::LookingDown(mut look) => {
+                    look -= time.delta_seconds * 1.5;
+                    look = look.max(0.);
+                    looking_at += Vec3::new(0., 100. * look, 0.);
+
+                    if look > 0. {
+                        camera.looking_up = LookingUp::LookingDown(look);
+                    } else {
+                        camera.looking_up = LookingUp::None;
+                    }
+                }
+                LookingUp::None => {}
             }
+
             transform.rotation = transform.looking_at(
                 looking_at,
                 Vec3::unit_y()
