@@ -7,6 +7,7 @@ use bevy::{
         shader::{ShaderStage, ShaderStages},
     },
     type_registry::TypeUuid,
+    diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
 };
 mod water;
 mod stripe;
@@ -16,6 +17,7 @@ fn main() {
     App::build()
         .add_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins)
+        .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_asset::<WaterMaterial>()
         .add_asset::<SkyMaterial>()
         .add_resource(ClearColor(Color::rgb(0., 0., 0.)))
@@ -31,6 +33,8 @@ fn main() {
         .add_system(boat_physics_system.system())
         .add_system(camera_system.system())
         .add_system(wave_probe_system.system())
+
+        .add_system(text_update_system)
         .run();
 }
 
@@ -82,6 +86,8 @@ struct SkyDome;
 struct Weather {
     wave_intensity: f32,
 }
+
+struct FpsText;
 
 const WATER_VERTEX_SHADER: &str = include_str!("../assets/shaders/water.vert");
 const WATER_FRAGMENT_SHADER: &str = include_str!("../assets/shaders/water.frag");
@@ -215,7 +221,27 @@ fn setup(
         .with(CameraTracker {
             bobber: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             looking_up: LookingUp::None,
-        });
+        })
+
+        .spawn(UiCameraBundle::default())
+        // texture
+        .spawn(TextBundle {
+            style: Style {
+                align_self: AlignSelf::FlexEnd,
+                ..Default::default()
+            },
+            text: Text {
+                value: "FPS:".to_string(),
+                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                style: TextStyle {
+                    font_size: 60.0,
+                    color: Color::WHITE,
+                    ..Default::default()
+                },
+            },
+            ..Default::default()
+        })
+        .with(FpsText);
 
 }
 
@@ -461,6 +487,16 @@ fn wave_probe_system(
                             // + wavedata.normal,
                             // Vec3::unit_y()).rotation;
             // transform.rotation = Quat::
+        }
+    }
+}
+
+fn text_update_system(diagnostics: Res<Diagnostics>, mut query: Query<&mut Text, With<FpsText>>) {
+    for mut text in query.iter_mut() {
+        if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
+            if let Some(average) = fps.average() {
+                text.value = format!("FPS: {:.2}", average);
+            }
         }
     }
 }
