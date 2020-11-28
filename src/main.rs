@@ -162,6 +162,21 @@ fn setup(
         .with(WaveProbe)
 
         .spawn(PbrBundle {
+            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+            // mesh: asset_server.load("helios/scene.gltf#Mesh0/Primitive0"),
+            material: materials.add(Color::rgb(0.5, 0.9, 0.6).into()),
+            // material: materials.add(Color::rgb(0.0, 0.9, 0.6).into()),
+            // material: materials.add(StandardMaterial {
+                // shaded: false,
+                // ..Default::default()
+            // }),
+            // transform: Transform::from_rotation(Quat::from_rotation_x(-PI / 2.)),
+            transform: Transform::from_translation(Vec3::new(5.0, 0.0, 20.0)),
+            ..Default::default()
+        })
+        .with(WaveProbe)
+
+        .spawn(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 0.5 })),
             material: materials.add(StandardMaterial {
                 ..Default::default()
@@ -278,7 +293,7 @@ fn spawn_sky(
         base::node::MAIN_PASS,
     ).unwrap();
 
-    let texture_handle: Handle<Texture> = asset_server.load("branding/bevy_logo_dark_big.png");
+    let texture_handle: Handle<Texture> = asset_server.load("star.png");
 
     let render_pipelines = RenderPipelines::from_pipelines(vec![RenderPipeline::new(
         sky_pipeline_handle,

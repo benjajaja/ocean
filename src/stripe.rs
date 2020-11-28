@@ -75,7 +75,7 @@ pub fn stars() -> Mesh {
     fn normal() -> [f32; 3] {
         [0.0, 1.0, 0.1]
     }
-    let size = 0.01;
+    let size = 0.005;
 
     let mut vertices: Vec<([f32; 3], [f32; 3], [f32; 2])> = vec![];
     let mut tri_indices: Vec<u32> = vec![];
@@ -104,7 +104,7 @@ pub fn stars() -> Mesh {
 
             for point in &star_points {
                 let rotated = quat.mul_vec3(*point);
-                vertices.push(([rotated.x, rotated.y, rotated.z], normal(), [point.x + 0.5, point.y + 0.5]));
+                vertices.push(([rotated.x, rotated.y, rotated.z], normal(), [point.x / size + 0.5, point.y / size + 0.5]));
             }
             let index_offset = i * 4;
             tri_indices.append(&mut vec![
