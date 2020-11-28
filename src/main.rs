@@ -326,6 +326,7 @@ fn spawn_sky(
     .with(SkyDome);
 }
 
+const WATER_TRANSLATE_STEP: f32 = 20.;
 fn water_update_system(
     time: Res<Time>,
     // weather: Res<Weather>,
@@ -356,7 +357,8 @@ fn water_update_system(
                 // water_material.wave2 = water.waves[1].to_vec4();
                 // water_material.wave3 = water.waves[2].to_vec4();
 
-                water_transform.translation = boat_transform.translation;
+                water_transform.translation.x = boat_transform.translation.x - boat_transform.translation.x % WATER_TRANSLATE_STEP;
+                water_transform.translation.z = boat_transform.translation.z - boat_transform.translation.z % WATER_TRANSLATE_STEP;
                 let height = water.height_at_point(
                     Vec2::new(boat_transform.translation.x, boat_transform.translation.y),
                     time.seconds_since_startup as f32 * WAVE_SPEED
@@ -371,8 +373,9 @@ fn water_update_system(
     }
 }
 
-const INPUT_ACCEL: f32 = 1.0;
+const INPUT_ACCEL: f32 = 10.0;
 const INPUT_DECAY: f32 = 10.0;
+const BOAT_MAX_SPEED: f32 = 10.2;
 fn keyboard_input_system(
     time: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
@@ -384,7 +387,7 @@ fn keyboard_input_system(
 
         if keyboard_input.pressed(KeyCode::W) {
             if boat.thrust < 1.0 {
-                boat.thrust = (boat.thrust + INPUT_ACCEL * time.delta_seconds).min(1.0);
+                boat.thrust = (boat.thrust + INPUT_ACCEL * time.delta_seconds).min(BOAT_MAX_SPEED);
                 print = true;
             }
         } else if boat.thrust > 0.0 {
