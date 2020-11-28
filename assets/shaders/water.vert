@@ -85,7 +85,7 @@ void gerstner_wave(
 
     target = target + vec3(
         d.x * (a * cos(f)),
-        a * sin(f),
+        a * sin(f) + a,
         d.y * (a * cos(f))
     );
 

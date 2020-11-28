@@ -60,7 +60,7 @@ fn gerstner_wave(
 
     target.add_assign(Vec3::new(
         d.x * (a * f.cos()),
-        a * f.sin(),
+        a * f.sin() + a,
         d.y * (a * f.cos())
     ));
 

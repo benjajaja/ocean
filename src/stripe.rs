@@ -69,13 +69,13 @@ fn plane(size: u32) -> Mesh {
     mesh
 }
 
-const STAR_DISTANCE: f32 = 1000.;
+const STAR_DISTANCE: f32 = 1.;
 pub fn stars() -> Mesh {
     const CBRT3: f32 = 1.44224957031; // cubic root of 3
     fn normal() -> [f32; 3] {
         [0.0, 1.0, 0.1]
     }
-    let size = 5.;
+    let size = 0.01;
 
     let mut vertices: Vec<([f32; 3], [f32; 3], [f32; 2])> = vec![];
     let mut tri_indices: Vec<u32> = vec![];
@@ -104,7 +104,7 @@ pub fn stars() -> Mesh {
 
             for point in &star_points {
                 let rotated = quat.mul_vec3(*point);
-                vertices.push(([rotated.x, rotated.y, rotated.z], normal(), [1., 0.]));
+                vertices.push(([rotated.x, rotated.y, rotated.z], normal(), [point.x + 0.5, point.y + 0.5]));
             }
             let index_offset = i * 4;
             tri_indices.append(&mut vec![

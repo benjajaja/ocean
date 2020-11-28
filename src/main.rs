@@ -136,6 +136,9 @@ fn setup(
     };
     water::set_waves(&mut water, weather.wave_intensity);
 
+    let debug_waves = water::get_waves(weather.wave_intensity);
+    println!("first wave: {} / {}", debug_waves[0].wavelength, debug_waves[0].steepness);
+
     let camera = Camera3dBundle {
         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0))
                 .looking_at(Vec3::new(0.0, 5.0, 1000.0), Vec3::unit_y()),
@@ -183,8 +186,16 @@ fn setup(
             render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::new(
                 water_pipeline_handle,
             )]),
-            transform: Transform::from_scale(Vec3::new(100.0, 100.0, 100.0)),
+            transform: Transform::from_scale(Vec3::new(200.0, 200.0, 200.0)),
             ..Default::default()
+        })
+        .with_children(|parent| {
+            parent.spawn(PbrBundle {
+                mesh: meshes.add(Mesh::from(shape::Plane { size: 500.0 })),
+                material: materials.add(Color::rgb(0.0, 0.0, 0.6).into()),
+                transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+                ..Default::default()
+            });
         })
         .with(water_materials.add(WaterMaterial {
             time: 0.,
