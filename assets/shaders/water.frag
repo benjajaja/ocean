@@ -40,8 +40,10 @@ void main() {
     o_Target = vec4(
         stripe * fade,
         sin(gl_FragCoord.y / 2 - time * 10) * 0.1 * fade,
-        (1 - (specular.y)) * fade + (stripe * fade),
-        1.
+        (1 - (specular.y)) * fade
+          * fade + (stripe * fade)
+          + ((1 - fade) * 0.6),
+        fade
     );
     /* o_Target = vec4(specular, 1.); */
     /* o_Target = vec4(Vertex_Normal / 2., 1); */

@@ -207,7 +207,12 @@ fn setup(
         .with_children(|parent| {
             parent.spawn(PbrBundle {
                 mesh: meshes.add(Mesh::from(shape::Plane { size: 500.0 })),
-                material: materials.add(Color::rgb(0.0, 0.0, 0.6).into()),
+                // material: materials.add(Color::rgb(0.0, 0.0, 0.6).into()),
+                material: materials.add(StandardMaterial {
+                    shaded: false,
+                    albedo: Color::rgb(0.2, 0.0, 0.6).into(),
+                    ..Default::default()
+                }),
                 transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
                 ..Default::default()
             });
