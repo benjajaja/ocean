@@ -5,8 +5,7 @@ layout(location = 0) in vec3 Vertex_Position;
 
 layout(location=1) out vec3 Vertex_Normal;
 layout(location=2) out vec4 World_Position;
-layout(location=3) out vec4 Original_World_Position;
-layout(location=4) out vec3 o_Vertex_Position;
+layout(location=3) out vec3 o_Vertex_Position;
 
 
 layout(set = 0, binding = 0) uniform Camera {
@@ -36,7 +35,7 @@ void gerstner_wave(vec3 position, inout vec3 target, inout vec3 tangent, inout v
 
 void main() {
     o_Vertex_Position = Vertex_Position;
-    Original_World_Position = Model * vec4(Vertex_Position, 1.0);
+    vec4 Original_World_Position = Model * vec4(Vertex_Position, 1.0);
 
     vec3 target = Original_World_Position.xyz;
     vec3 tangent = vec3(1, 0, 0);

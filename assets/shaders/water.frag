@@ -12,40 +12,42 @@ layout(set = 1, binding = 3) uniform WaterMaterial_camera {
 
 layout(location=1) in vec3 Vertex_Normal;
 layout(location=2) in vec4 World_Position;
-layout(location=3) in vec4 Original_World_Position;
-layout(location=4) in vec3 o_Vertex_Position;
+layout(location=3) in vec3 o_Vertex_Position;
 
 layout(location=0) out vec4 o_Target;
 
 
-const vec3 light_direction = normalize(vec3(0.0, 1, 0.8));
+const vec3 light_direction = normalize(vec3(0.5, 1, 0.5));
 const float FADE_DROPOFF = 0.75;
 
 float Voronoi3Tap(vec2 p, float iTime);
 
 void main() {
+    float fade = 1 - smoothstep(0.75, 0.9, sqrt(dot(o_Vertex_Position.xz, o_Vertex_Position.xz)));
+
     float specular_intensity = .1;
     vec3 specular = pow(dot(
-        normalize((camera - World_Position.xyz)),
-        reflect(light_direction, Vertex_Normal)
+        normalize((light_direction - World_Position.xyz)),
+        reflect(Vertex_Normal, Vertex_Normal)
     ), specular_intensity) * vec3(1.0, 1.0, 1.0);
 
     vec3 diffuse = color.rgb * (dot(Vertex_Normal, light_direction));
-
-    vec3 local_position = o_Vertex_Position;
-    float fade = 1 - smoothstep(0.75, 0.9, sqrt(dot(local_position.xz, local_position.xz)));
+    float reflection = (sin(gl_FragCoord.y / 2 - time * 10) * 0.05 * fade + (1 - specular.y)) * 0.2;
 
     float stripe = smoothstep(0.99, .999, (sin(World_Position.x * 4)) * 1)
       + smoothstep(0.99, .999, (sin(World_Position.z * 4)) * 1);
 
-    float c = Voronoi3Tap(World_Position.xz*0.1, time);
-    o_Target = vec4(
-        /* stripe * fade + (1 - specular.y), */
-        0.,
-        (sin(gl_FragCoord.y / 2 - time * 10) * 0.05 * fade + (1 - specular.y)) * 0.2,
-        pow(c, 10),
-        fade
-    );
+    float pixelate = .01;
+    float c = Voronoi3Tap(pixelate * floor(World_Position.xz*0.1 / pixelate), time);
+    float crest = smoothstep(0.5, 1.0, pow(c + .2, 10));
+
+    vec3 color = (vec3(crest, crest, crest))
+      + vec3(
+          reflection,
+          0.,
+          0.
+        );
+    o_Target = vec4(color, fade);
     /* o_Target = vec4(specular, 1.); */
     /* o_Target = vec4(Vertex_Normal / 2., 1); */
     /* o_Target = vec4(color.rgb, 1.); */
