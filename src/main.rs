@@ -126,6 +126,7 @@ fn setup(
     palmtree_transform.scale = Vec3::new(4., 4., 4.);
     let palmtree = PbrBundle {
         mesh: asset_server.load("palmera.glb#Mesh3/Primitive0"),
+        material: materials.add(Color::rgb(0.9, 0.9, 0.6).into()),
         // material: materials.add(Color::rgb(0.8, 0.5, 0.0).into()),
         transform: palmtree_transform,
         ..Default::default()
@@ -188,7 +189,7 @@ fn setup(
 
         // .with(WaveProbe)
 
-        .spawn(palmtree)
+        // .spawn(palmtree)
         // .with(WaterFloor)
 
         .spawn(LightBundle {
@@ -210,16 +211,16 @@ fn setup(
                 // material: materials.add(Color::rgb(0.0, 0.0, 0.6).into()),
                 material: materials.add(StandardMaterial {
                     shaded: false,
-                    albedo: Color::rgb(0.2, 0.0, 0.6).into(),
+                    albedo: Color::rgb(0.0, 0.01, 0.2).into(),
                     ..Default::default()
                 }),
-                transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+                transform: Transform::from_translation(Vec3::new(0.0, -1.0, 0.0)),
                 ..Default::default()
             });
         })
         .with(water_materials.add(WaterMaterial {
             time: 0.,
-            color: Vec4::new(0.1, 0.0, 0.5, 1.0),
+            color: Vec4::new(0.1, 0.5, 0.5, 1.0),
             camera: Vec3::new(0., 0., 0.),
             wave1: water.waves[0].to_vec4(),
             wave2: water.waves[1].to_vec4(),
@@ -314,13 +315,13 @@ fn spawn_sky(
         ..Default::default()
     })
     .with_children(|parent| {
-        parent.spawn(PbrBundle {
-            mesh: asset_server.load("palmera.glb#Mesh3/Primitive0"),
-            render_pipelines: render_pipelines,
-            transform: Transform::from_translation(Vec3::new(0., 0., 1000.))
-                * Transform::from_scale(Vec3::new(10., 10., 10.)),
-            ..Default::default()
-        });
+        // parent.spawn(PbrBundle {
+            // mesh: asset_server.load("palmera.glb#Mesh3/Primitive0"),
+            // render_pipelines: render_pipelines,
+            // transform: Transform::from_translation(Vec3::new(0., 0., 1000.))
+                // * Transform::from_scale(Vec3::new(10., 10., 10.)),
+            // ..Default::default()
+        // });
     })
     .with(sky_material)
     .with(SkyDome);
@@ -450,7 +451,7 @@ fn boat_physics_system(
             if let Some((_sky, mut sky_transform)) = skydome_query.iter_mut().next() {
                 let right_angle = Quat::from_rotation_y(std::f32::consts::PI / 2.);
                 let rotation_axis = right_angle.mul_vec3(jump);
-                let rotation = Quat::from_axis_angle(rotation_axis, -jump.length() * 0.01);
+                let rotation = Quat::from_axis_angle(rotation_axis, -jump.length() * 0.001);
                 sky_transform.rotation = rotation.mul_quat(sky_transform.rotation).normalize();
             }
         }
@@ -485,13 +486,13 @@ fn camera_system(
             let mut looking_at = camera.bobber.translation;
             match camera.looking_up {
                 LookingUp::LookingUp(mut look) => {
-                    look += time.delta_seconds * 0.5;
+                    look += look + time.delta_seconds * 0.5;
                     look = look.min(1.);
                     looking_at += Vec3::new(0., 100. * look, 0.);
                     camera.looking_up = LookingUp::LookingUp(look);
                 }
                 LookingUp::LookingDown(mut look) => {
-                    look -= time.delta_seconds * 1.5;
+                    look -= time.delta_seconds * 2.5;
                     look = look.max(0.);
                     looking_at += Vec3::new(0., 100. * look, 0.);
 
