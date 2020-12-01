@@ -61,16 +61,18 @@ impl LookingUp {
 struct PlayerBoat {
     thrust: f32,
     steer: f32,
-    world_rotation: f32,
-}
-
-struct WaveProbe {
     world_rotation: f32, // y angle in radians
 }
-impl Default for WaveProbe {
+
+struct Swimmer {
+    world_rotation: f32, // y angle in radians
+}
+impl Default for Swimmer {
     #[inline]
     fn default() -> Self {
-        WaveProbe { world_rotation: 0. }
+        Swimmer {
+            world_rotation: 0.,
+        }
     }
 }
 
@@ -169,8 +171,9 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(5.0, 0.0, 0.0)),
             ..Default::default()
         })
-        .with(WaveProbe {
+        .with(Swimmer {
             world_rotation: PI / 4.,
+            ..Default::default()
         })
 
         .spawn(PbrBundle {
@@ -186,7 +189,9 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(5.0, 0.0, 20.0)),
             ..Default::default()
         })
-        .with(WaveProbe::default())
+        .with(Swimmer {
+            ..Default::default()
+        })
 
         .spawn(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 0.5 })),
@@ -196,11 +201,8 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(-10.0, 0.0, 5.0)),
             ..Default::default()
         })
-        .with(WaveProbe::default())
+        .with(Swimmer::default())
 
-        // .with(WaveProbe)
-
-        // .spawn(palmtree)
 
         .spawn(LightBundle {
             transform: Transform::from_translation(Vec3::new(4.0, 50.0, 4.0)),
@@ -455,24 +457,7 @@ fn boat_physics_system(
             // "anchor" water plane at boat
             water_transform.translation.y = -wavedata.position.y;
 
-            let world_rotation = Quat::from_axis_angle(
-                Vec3::unit_y(),
-                boat.world_rotation
-            ).normalize();
-
-            let normal = wavedata.normal;
-            let quat: Quat;
-            if normal.y > 0.99999 {
-                quat = Quat::from_xyzw(0., 0., 0., 1.);
-            } else if normal.y < -0.99999 {
-                quat = Quat::from_xyzw(1., 0., 0., 0.);
-            } else {
-                let axis = Vec3::new(normal.z, 0., -normal.x).normalize();
-                let radians = normal.y.acos();
-                quat = Quat::from_axis_angle(axis, radians);
-            }
-
-            boat_transform.rotation = quat * world_rotation;
+            boat_transform.rotation = water::surface_quat(wavedata, boat.world_rotation);
         }
     }
 }
@@ -533,31 +518,19 @@ fn camera_system(
 
 fn wave_probe_system(
     time: Res<Time>,
-    mut wave_probes_query: Query<(&WaveProbe, &mut Transform)>,
+    mut wave_probes_query: Query<(&Swimmer, &mut Transform)>,
     water_query: Query<(&water::Water, &Transform)>,
 ) {
     if let Some((water, water_transform)) = water_query.iter().next() {
-        for (probe, mut transform) in wave_probes_query.iter_mut() {
+        for (swimmer, mut transform) in wave_probes_query.iter_mut() {
             let wavedata = water.wave_data_at_point(
                 Vec2::new(transform.translation.x * 1., transform.translation.z * 1.),
                 time.seconds_since_startup as f32 * WAVE_SPEED
             );
             transform.translation.y = wavedata.position.y + water_transform.translation.y;
 
-            let mut tangent_xy = wavedata.tangent;
-            tangent_xy.z = 0.;
-            let quat = Transform::identity().looking_at(tangent_xy, Vec3::unit_y()).rotation;
 
-            transform.rotation = transform.rotation.slerp(
-                quat * Quat::from_rotation_y(probe.world_rotation),
-                time.delta_seconds,
-            );
-
-            // transform.rotation = transform
-                // .looking_at(transform.translation
-                            // + wavedata.normal,
-                            // Vec3::unit_y()).rotation;
-            // transform.rotation = Quat::
+            transform.rotation = water::surface_quat(wavedata, swimmer.world_rotation);
         }
     }
 }

@@ -110,3 +110,23 @@ pub fn get_waves(intensity: f32) -> [WaveProperties; 3] {
                             Vec2::new(0.1, -0.2)),
     ]
 }
+
+pub fn surface_quat(wavedata: WaveData, world_rotation: f32) -> Quat {
+    let world_rotation = Quat::from_axis_angle(
+        Vec3::unit_y(),
+        world_rotation
+    ).normalize();
+
+    let normal = wavedata.normal;
+    let quat: Quat;
+    if normal.y > 0.99999 {
+        quat = Quat::from_xyzw(0., 0., 0., 1.);
+    } else if normal.y < -0.99999 {
+        quat = Quat::from_xyzw(1., 0., 0., 0.);
+    } else {
+        let axis = Vec3::new(normal.z, 0., -normal.x).normalize();
+        let radians = normal.y.acos();
+        quat = Quat::from_axis_angle(axis, radians);
+    }
+    return quat * world_rotation;
+}
