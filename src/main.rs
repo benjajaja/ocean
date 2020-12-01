@@ -7,18 +7,20 @@ use bevy::{
         shader::{ShaderStage, ShaderStages},
     },
     type_registry::TypeUuid,
-    diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
 };
 use std::f32::consts::{PI,FRAC_PI_2};
+mod boat;
+use boat::PlayerBoat;
 mod water;
 mod stripe;
+mod ui;
 
 /// This example illustrates how to add a custom attribute to a mesh and use it in a custom shader.
 fn main() {
-    App::build()
+    let mut app = App::build();
+    app
         .add_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins)
-        .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_asset::<WaterMaterial>()
         .add_asset::<SkyMaterial>()
         .add_resource(ClearColor(Color::rgb(0., 0., 0.)))
@@ -33,10 +35,10 @@ fn main() {
         .add_system(keyboard_input_system.system())
         .add_system(boat_physics_system.system())
         .add_system(camera_system.system())
-        .add_system(wave_probe_system.system())
+        .add_system(wave_probe_system.system());
 
-        .add_system(text_update_system)
-        .run();
+    ui::add_systems(&mut app);
+    app.run();
 }
 
 struct CameraTracker {
@@ -56,12 +58,6 @@ impl LookingUp {
             LookingUp::LookingDown(a) => a,
         }
     }
-}
-
-struct PlayerBoat {
-    thrust: f32,
-    steer: f32,
-    world_rotation: f32, // y angle in radians
 }
 
 struct Swimmer {
@@ -97,8 +93,6 @@ struct SkyDome;
 struct Weather {
     wave_intensity: f32,
 }
-
-struct FpsText;
 
 const WATER_VERTEX_SHADER: &str = include_str!("../assets/shaders/water.vert");
 const WATER_FRAGMENT_SHADER: &str = include_str!("../assets/shaders/water.frag");
@@ -265,28 +259,7 @@ fn setup(
         .with(CameraTracker {
             bobber: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             looking_up: LookingUp::None,
-        })
-
-        .spawn(UiCameraBundle::default())
-        // texture
-        .spawn(TextBundle {
-            style: Style {
-                align_self: AlignSelf::FlexEnd,
-                ..Default::default()
-            },
-            text: Text {
-                value: "FPS:".to_string(),
-                font: asset_server.load("fonts/3270/3270-Regular.ttf"),
-                style: TextStyle {
-                    font_size: 60.0,
-                    color: Color::WHITE,
-                    ..Default::default()
-                },
-            },
-            ..Default::default()
-        })
-        .with(FpsText);
-
+        });
 }
 
 fn spawn_sky(
@@ -542,12 +515,3 @@ fn wave_probe_system(
     }
 }
 
-fn text_update_system(diagnostics: Res<Diagnostics>, mut query: Query<&mut Text, With<FpsText>>) {
-    for mut text in query.iter_mut() {
-        if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
-            if let Some(average) = fps.average() {
-                text.value = format!("FPS: {:.2}", average);
-            }
-        }
-    }
-}
