@@ -276,7 +276,7 @@ fn setup(
             },
             text: Text {
                 value: "FPS:".to_string(),
-                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                font: asset_server.load("fonts/3270/3270-Regular.ttf"),
                 style: TextStyle {
                     font_size: 60.0,
                     color: Color::WHITE,
