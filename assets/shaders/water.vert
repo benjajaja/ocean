@@ -89,14 +89,14 @@ void gerstner_wave(
     );
 
     tangent = tangent + vec3(
-        1 - d.x * d.x * (steepness * sin(f)),
+        -d.x * d.x * (steepness * sin(f)),
         d.x * (steepness * cos(f)),
         -d.x * d.y * (steepness * sin(f))
     );
     binormal = binormal + vec3(
         -d.x * d.y * (steepness * sin(f)),
         d.y * (steepness * cos(f)),
-        1 - d.y * d.y * (steepness * sin(f))
+        -d.y * d.y * (steepness * sin(f))
     );
 }
 

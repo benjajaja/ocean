@@ -20,6 +20,7 @@ impl Water {
 pub struct WaveData {
     pub position: Vec3,
     pub normal: Vec3,
+    pub binormal: Vec3,
     pub tangent: Vec3,
 }
 
@@ -80,12 +81,14 @@ fn wave_sequence(position: Vec3, time: f32, waves: &[WaveProperties; 3]) -> Wave
     let mut target = position.clone();
     let mut tangent = Vec3::unit_x();
     let mut binormal = Vec3::unit_z();
-    for wave in waves {
-        gerstner_wave(position, time, &mut target, &mut tangent, &mut binormal, wave);
-    }
+    gerstner_wave(position, time, &mut target, &mut tangent, &mut binormal, &waves[0]);
+    // TODO: fix normals for other direction
+    gerstner_wave(position, time, &mut target, &mut Vec3::unit_x(), &mut Vec3::unit_z(), &waves[1]);
+    gerstner_wave(position, time, &mut target, &mut Vec3::unit_x(), &mut Vec3::unit_z(), &waves[2]);
     WaveData {
         position: target,
         normal: binormal.cross(tangent).normalize(),
+        binormal,
         tangent,
     }
 }

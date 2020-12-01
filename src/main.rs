@@ -9,7 +9,7 @@ use bevy::{
     type_registry::TypeUuid,
     diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
 };
-use std::f32::consts::PI;
+use std::f32::consts::{PI,FRAC_PI_2};
 mod water;
 mod stripe;
 
@@ -248,7 +248,7 @@ fn setup(
             parent.spawn(PbrBundle {
                 mesh: asset_server.load("flota1.glb#Mesh0/Primitive0"),
                 material: materials.add(Color::rgb(0.2, 0.8, 0.6).into()),
-                transform: Transform::from_rotation(Quat::from_rotation_y(3.1415 / 2.)),
+                transform: Transform::from_rotation(Quat::from_rotation_y(FRAC_PI_2)), // the gltf is not looking at -z
                 ..Default::default()
             });
         })
@@ -426,13 +426,14 @@ fn boat_physics_system(
             boat.world_rotation += -boat.steer * time.delta_seconds;
 
             let thrust_vector = Vec3::new(0., 0., boat.thrust * 0.6);
-            let jump = Quat::from_rotation_y(boat.world_rotation - PI / 2.).mul_vec3(thrust_vector);
+            let jump = Quat::from_rotation_y(boat.world_rotation).mul_vec3(thrust_vector);
 
             boat_transform.translation += jump;
 
 
+            // rotate skydome from boat jump
             if let Some((_sky, mut sky_transform)) = skydome_query.iter_mut().next() {
-                let right_angle = Quat::from_rotation_y(std::f32::consts::PI / 2.);
+                let right_angle = Quat::from_rotation_y(FRAC_PI_2);
                 let rotation_axis = right_angle.mul_vec3(jump);
                 let rotation = Quat::from_axis_angle(rotation_axis, -jump.length() * 0.001);
                 sky_transform.rotation = rotation.mul_quat(sky_transform.rotation).normalize();
@@ -444,19 +445,34 @@ fn boat_physics_system(
             // water_material.wave2 = water.waves[1].to_vec4();
             // water_material.wave3 = water.waves[2].to_vec4();
 
+            // move water plane along in steps to avoid vertex jither
             water_transform.translation.x = boat_transform.translation.x - boat_transform.translation.x % WATER_TRANSLATE_STEP;
             water_transform.translation.z = boat_transform.translation.z - boat_transform.translation.z % WATER_TRANSLATE_STEP;
             let wavedata = water.wave_data_at_point(
                 Vec2::new(boat_transform.translation.x, boat_transform.translation.y),
                 time.seconds_since_startup as f32 * WAVE_SPEED
             );
+            // "anchor" water plane at boat
             water_transform.translation.y = -wavedata.position.y;
 
-            let mut tangent_xy = wavedata.tangent;
-            tangent_xy.z = 0.;
-            let quat = Transform::identity().looking_at(tangent_xy, Vec3::unit_y()).rotation;
+            let world_rotation = Quat::from_axis_angle(
+                Vec3::unit_y(),
+                boat.world_rotation
+            ).normalize();
 
-            boat_transform.rotation = quat * Quat::from_rotation_y(boat.world_rotation);
+            let normal = wavedata.normal;
+            let quat: Quat;
+            if normal.y > 0.99999 {
+                quat = Quat::from_xyzw(0., 0., 0., 1.);
+            } else if normal.y < -0.99999 {
+                quat = Quat::from_xyzw(1., 0., 0., 0.);
+            } else {
+                let axis = Vec3::new(normal.z, 0., -normal.x).normalize();
+                let radians = normal.y.acos();
+                quat = Quat::from_axis_angle(axis, radians);
+            }
+
+            boat_transform.rotation = quat * world_rotation;
         }
     }
 }
