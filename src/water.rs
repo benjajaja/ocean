@@ -112,17 +112,6 @@ pub fn get_waves(intensity: f32) -> [WaveProperties; 3] {
             direction: Vec2::new(1.0, 1.3),
         },
     ]
-    // [
-        // WaveProperties::new(intensity,
-                            // intensity / 250.,
-                            // Vec2::new(1.0, 0.0)),
-        // WaveProperties::new(intensity / 5.,
-                            // intensity / 200.,
-                            // Vec2::new(0.1, 0.9)),
-        // WaveProperties::new(intensity / 33.3,
-                            // intensity / 333.,
-                            // Vec2::new(0.1, -0.2)),
-    // ]
 }
 
 pub fn surface_quat(wavedata: WaveData, world_rotation: f32) -> Quat {

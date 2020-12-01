@@ -23,7 +23,7 @@ fn main() {
         .add_asset::<SkyMaterial>()
         .add_resource(ClearColor(Color::rgb(0., 0., 0.)))
         .add_resource(Weather {
-            wave_intensity: 1.,
+            wave_intensity: 0.5,
         })
         .add_startup_system(setup.system())
         .add_startup_system(spawn_sky.system())
@@ -476,7 +476,10 @@ fn camera_system(
             camera.bobber.translation.z = boat_translation.z;
 
             camera.bobber.rotation = camera.bobber.rotation.slerp(
-                boat_transform.rotation,
+                Quat::from_axis_angle(
+                    Vec3::unit_y(),
+                    boat.world_rotation
+                ).normalize(),
                 time.delta_seconds * CAMERA_ROTATION_FACTOR
             );
 
