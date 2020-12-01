@@ -32,11 +32,6 @@ pub struct WaveProperties {
     pub direction: Vec2,
 }
 impl WaveProperties {
-    pub fn new(wavelength: f32, steepness: f32, direction: Vec2) -> Self {
-        Self {
-            wavelength, steepness, direction
-        }
-    }
     pub fn to_vec4(self: &Self) -> Vec4 {
         Vec4::new(self.direction.x, self.direction.y, self.wavelength, self.steepness)
     }
@@ -81,10 +76,12 @@ fn wave_sequence(position: Vec3, time: f32, waves: &[WaveProperties; 3]) -> Wave
     let mut target = position.clone();
     let mut tangent = Vec3::unit_x();
     let mut binormal = Vec3::unit_z();
-    gerstner_wave(position, time, &mut target, &mut tangent, &mut binormal, &waves[0]);
-    // TODO: fix normals for other direction
-    gerstner_wave(position, time, &mut target, &mut Vec3::unit_x(), &mut Vec3::unit_z(), &waves[1]);
-    gerstner_wave(position, time, &mut target, &mut Vec3::unit_x(), &mut Vec3::unit_z(), &waves[2]);
+    // gerstner_wave(position, time, &mut target, &mut tangent, &mut binormal, &waves[0]);
+    // gerstner_wave(position, time, &mut target, &mut Vec3::unit_x(), &mut Vec3::unit_z(), &waves[1]);
+    // gerstner_wave(position, time, &mut target, &mut Vec3::unit_x(), &mut Vec3::unit_z(), &waves[2]);
+    for wave in waves {
+        gerstner_wave(position, time, &mut target, &mut tangent, &mut binormal, wave);
+    }
     WaveData {
         position: target,
         normal: binormal.cross(tangent).normalize(),
@@ -99,16 +96,33 @@ pub fn set_waves(water: &mut Water, intensity: f32) -> () {
 
 pub fn get_waves(intensity: f32) -> [WaveProperties; 3] {
     [
-        WaveProperties::new(intensity,
-                            intensity / 250.,
-                            Vec2::new(1.0, 0.0)),
-        WaveProperties::new(intensity / 5.,
-                            intensity / 200.,
-                            Vec2::new(0.1, 0.9)),
-        WaveProperties::new(intensity / 33.3,
-                            intensity / 333.,
-                            Vec2::new(0.1, -0.2)),
+        WaveProperties {
+            wavelength: intensity * 60.,
+            steepness: intensity * 0.25,
+            direction: Vec2::new(1.0, 0.0),
+        },
+        WaveProperties {
+            wavelength: intensity * 31.,
+            steepness: intensity * 0.25,
+            direction: Vec2::new(1.0, 0.6),
+        },
+        WaveProperties {
+            wavelength: intensity * 18.,
+            steepness: intensity * 0.25,
+            direction: Vec2::new(1.0, 1.3),
+        },
     ]
+    // [
+        // WaveProperties::new(intensity,
+                            // intensity / 250.,
+                            // Vec2::new(1.0, 0.0)),
+        // WaveProperties::new(intensity / 5.,
+                            // intensity / 200.,
+                            // Vec2::new(0.1, 0.9)),
+        // WaveProperties::new(intensity / 33.3,
+                            // intensity / 333.,
+                            // Vec2::new(0.1, -0.2)),
+    // ]
 }
 
 pub fn surface_quat(wavedata: WaveData, world_rotation: f32) -> Quat {

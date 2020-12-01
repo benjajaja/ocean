@@ -23,7 +23,7 @@ fn main() {
         .add_asset::<SkyMaterial>()
         .add_resource(ClearColor(Color::rgb(0., 0., 0.)))
         .add_resource(Weather {
-            wave_intensity: 50.,
+            wave_intensity: 1.,
         })
         .add_startup_system(setup.system())
         .add_startup_system(spawn_sky.system())
@@ -451,7 +451,7 @@ fn boat_physics_system(
             water_transform.translation.x = boat_transform.translation.x - boat_transform.translation.x % WATER_TRANSLATE_STEP;
             water_transform.translation.z = boat_transform.translation.z - boat_transform.translation.z % WATER_TRANSLATE_STEP;
             let wavedata = water.wave_data_at_point(
-                Vec2::new(boat_transform.translation.x, boat_transform.translation.y),
+                Vec2::new(boat_transform.translation.x, boat_transform.translation.z),
                 time.seconds_since_startup as f32 * WAVE_SPEED
             );
             // "anchor" water plane at boat
