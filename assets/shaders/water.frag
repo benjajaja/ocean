@@ -39,13 +39,15 @@ void main() {
 
     float pixelate = .01;
     float c = Voronoi3Tap(pixelate * floor(World_Position.xz*0.1 / pixelate), time);
-    float crest = smoothstep(0.5, 1.0, pow(c + .2, 10));
+    float crest =  pow(c, 10);
+    //smoothstep(0.5, 1.0, pow(c + .2, 10));
 
-    vec3 color = (vec3(crest, crest, crest))
+    vec3 color = //(vec3(crest, crest, crest))
+      vec3(0., 0., 0.)
       + vec3(
           reflection,
           0.,
-          0.
+          crest
         );
     o_Target = vec4(color, fade);
     /* o_Target = vec4(specular, 1.); */
