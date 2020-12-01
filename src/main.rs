@@ -9,6 +9,7 @@ use bevy::{
     type_registry::TypeUuid,
     diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
 };
+use std::f32::consts::PI;
 mod water;
 mod stripe;
 
@@ -57,13 +58,21 @@ impl LookingUp {
     }
 }
 
-struct Player;
 struct PlayerBoat {
     thrust: f32,
     steer: f32,
+    world_rotation: f32,
 }
-struct WaveProbe;
-struct WaterFloor;
+
+struct WaveProbe {
+    world_rotation: f32, // y angle in radians
+}
+impl Default for WaveProbe {
+    #[inline]
+    fn default() -> Self {
+        WaveProbe { world_rotation: 0. }
+    }
+}
 
 #[derive(RenderResources, Default, TypeUuid)]
 #[uuid = "0320b9b8-b3a3-4baa-8bfa-c94008177b17"]
@@ -160,7 +169,9 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(5.0, 0.0, 0.0)),
             ..Default::default()
         })
-        .with(WaveProbe)
+        .with(WaveProbe {
+            world_rotation: PI / 4.,
+        })
 
         .spawn(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
@@ -175,7 +186,7 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(5.0, 0.0, 20.0)),
             ..Default::default()
         })
-        .with(WaveProbe)
+        .with(WaveProbe::default())
 
         .spawn(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 0.5 })),
@@ -185,12 +196,11 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(-10.0, 0.0, 5.0)),
             ..Default::default()
         })
-        .with(WaveProbe)
+        .with(WaveProbe::default())
 
         // .with(WaveProbe)
 
         // .spawn(palmtree)
-        // .with(WaterFloor)
 
         .spawn(LightBundle {
             transform: Transform::from_translation(Vec3::new(4.0, 50.0, 4.0)),
@@ -242,10 +252,10 @@ fn setup(
                 ..Default::default()
             });
         })
-        .with(Player { })
         .with(PlayerBoat {
             thrust: 0.,
             steer: 0.,
+            world_rotation: 0.,
         })
 
 
@@ -327,55 +337,9 @@ fn spawn_sky(
     .with(SkyDome);
 }
 
-const WATER_TRANSLATE_STEP: f32 = 20.;
-fn water_update_system(
-    time: Res<Time>,
-    // weather: Res<Weather>,
-    mut water_mats: ResMut<Assets<WaterMaterial>>,
-    water_material_query: Query<&Handle<WaterMaterial>>,
-    mut water_transform_query: Query<(&mut water::Water, &mut Transform)>,
-    camera_query: Query<(&Transform, &CameraTracker)>,
-    boat_query: Query<(&Transform, &PlayerBoat)>,
-    mut water_floored_query: Query<(&mut WaterFloor, &mut Transform)>,
-) {
-    if let Some(water_material) = water_material_query.iter().next()
-            .and_then(|water_handle| water_mats.get_mut(water_handle))
-    {
-        water_material.time = time.seconds_since_startup as f32 * WAVE_SPEED;
-
-
-        if let Some((transform, _)) = camera_query.iter().next() {
-            water_material.camera = transform.translation;
-        }
-
-        // get boat transform
-        if let Some((boat_transform, _)) = boat_query.iter().next() {
-            if let Some((water, mut water_transform)) = water_transform_query.iter_mut().next() {
-
-                // TODO: make weather_update_system
-                // water::set_waves(&mut water, weather.wave_intensity);
-                // water_material.wave1 = water.waves[0].to_vec4();
-                // water_material.wave2 = water.waves[1].to_vec4();
-                // water_material.wave3 = water.waves[2].to_vec4();
-
-                water_transform.translation.x = boat_transform.translation.x - boat_transform.translation.x % WATER_TRANSLATE_STEP;
-                water_transform.translation.z = boat_transform.translation.z - boat_transform.translation.z % WATER_TRANSLATE_STEP;
-                let height = water.height_at_point(
-                    Vec2::new(boat_transform.translation.x, boat_transform.translation.y),
-                    time.seconds_since_startup as f32 * WAVE_SPEED
-                );
-                water_transform.translation.y = -height;
-
-                if let Some((_, mut transform)) = water_floored_query.iter_mut().next() {
-                    transform.translation.y = height;
-                }
-            }
-        }
-    }
-}
-
 const INPUT_ACCEL: f32 = 10.0;
 const INPUT_DECAY: f32 = 10.0;
+const STEER_ACCEL: f32 = 20.0;
 const BOAT_MAX_SPEED: f32 = 10.2;
 fn keyboard_input_system(
     time: Res<Time>,
@@ -398,7 +362,7 @@ fn keyboard_input_system(
 
         if keyboard_input.pressed(KeyCode::A) {
             if boat.steer > -1.0 {
-                boat.steer = (boat.steer - INPUT_ACCEL * time.delta_seconds).max(-1.0);
+                boat.steer = (boat.steer - STEER_ACCEL * time.delta_seconds).max(-1.0);
                 print = true;
             }
         } else if boat.steer < 0.0 {
@@ -407,7 +371,7 @@ fn keyboard_input_system(
         }
         if keyboard_input.pressed(KeyCode::D) {
             if boat.steer < 1.0 {
-                boat.steer = (boat.steer + INPUT_ACCEL * time.delta_seconds).min(1.0);
+                boat.steer = (boat.steer + STEER_ACCEL * time.delta_seconds).min(1.0);
                 print = true;
             }
         } else if boat.steer > 0.0 {
@@ -431,22 +395,41 @@ fn keyboard_input_system(
     }
 }
 
+const WATER_TRANSLATE_STEP: f32 = 20.;
+fn water_update_system(
+    time: Res<Time>,
+    // weather: Res<Weather>,
+    mut water_mats: ResMut<Assets<WaterMaterial>>,
+    water_material_query: Query<&Handle<WaterMaterial>>,
+    camera_query: Query<(&Transform, &CameraTracker)>,
+) {
+    if let Some(water_material) = water_material_query.iter().next()
+            .and_then(|water_handle| water_mats.get_mut(water_handle))
+    {
+        water_material.time = time.seconds_since_startup as f32 * WAVE_SPEED;
+
+
+        if let Some((transform, _)) = camera_query.iter().next() {
+            water_material.camera = transform.translation;
+        }
+    }
+}
+
 fn boat_physics_system(
     time: Res<Time>,
     mut boat_query: Query<(&mut PlayerBoat, &mut Transform)>,
+    mut water_transform_query: Query<(&mut water::Water, &mut Transform)>,
     mut skydome_query: Query<(&mut SkyDome, &mut Transform)>,
 ) {
-    if let Some((boat, mut transform)) = boat_query.iter_mut().next() {
-        if boat.steer != 0.0 || boat.thrust != 0.0 {
-            transform.rotation = transform.rotation.slerp(
-                transform.rotation.mul_quat(Quat::from_rotation_y(-boat.steer * 2.)),
-                time.delta_seconds
-            );
+    if let Some((mut boat, mut boat_transform)) = boat_query.iter_mut().next() {
+        if let Some((water, mut water_transform)) = water_transform_query.iter_mut().next() {
+            boat.world_rotation += -boat.steer * time.delta_seconds;
 
             let thrust_vector = Vec3::new(0., 0., boat.thrust * 0.6);
-            let jump = transform.rotation.mul_vec3(thrust_vector);
+            let jump = Quat::from_rotation_y(boat.world_rotation - PI / 2.).mul_vec3(thrust_vector);
 
-            transform.translation += jump;
+            boat_transform.translation += jump;
+
 
             if let Some((_sky, mut sky_transform)) = skydome_query.iter_mut().next() {
                 let right_angle = Quat::from_rotation_y(std::f32::consts::PI / 2.);
@@ -454,8 +437,27 @@ fn boat_physics_system(
                 let rotation = Quat::from_axis_angle(rotation_axis, -jump.length() * 0.001);
                 sky_transform.rotation = rotation.mul_quat(sky_transform.rotation).normalize();
             }
-        }
 
+            // TODO: make weather_update_system
+            // water::set_waves(&mut water, weather.wave_intensity);
+            // water_material.wave1 = water.waves[0].to_vec4();
+            // water_material.wave2 = water.waves[1].to_vec4();
+            // water_material.wave3 = water.waves[2].to_vec4();
+
+            water_transform.translation.x = boat_transform.translation.x - boat_transform.translation.x % WATER_TRANSLATE_STEP;
+            water_transform.translation.z = boat_transform.translation.z - boat_transform.translation.z % WATER_TRANSLATE_STEP;
+            let wavedata = water.wave_data_at_point(
+                Vec2::new(boat_transform.translation.x, boat_transform.translation.y),
+                time.seconds_since_startup as f32 * WAVE_SPEED
+            );
+            water_transform.translation.y = -wavedata.position.y;
+
+            let mut tangent_xy = wavedata.tangent;
+            tangent_xy.z = 0.;
+            let quat = Transform::identity().looking_at(tangent_xy, Vec3::unit_y()).rotation;
+
+            boat_transform.rotation = quat * Quat::from_rotation_y(boat.world_rotation);
+        }
     }
 }
 
@@ -519,15 +521,22 @@ fn wave_probe_system(
     water_query: Query<(&water::Water, &Transform)>,
 ) {
     if let Some((water, water_transform)) = water_query.iter().next() {
-        for (_probe, mut transform) in wave_probes_query.iter_mut() {
+        for (probe, mut transform) in wave_probes_query.iter_mut() {
             let wavedata = water.wave_data_at_point(
                 Vec2::new(transform.translation.x * 1., transform.translation.z * 1.),
                 time.seconds_since_startup as f32 * WAVE_SPEED
             );
             transform.translation.y = wavedata.position.y + water_transform.translation.y;
 
-            let trans = Transform::identity().looking_at(wavedata.tangent, Vec3::unit_y());
-            transform.rotation = trans.rotation;
+            let mut tangent_xy = wavedata.tangent;
+            tangent_xy.z = 0.;
+            let quat = Transform::identity().looking_at(tangent_xy, Vec3::unit_y()).rotation;
+
+            transform.rotation = transform.rotation.slerp(
+                quat * Quat::from_rotation_y(probe.world_rotation),
+                time.delta_seconds,
+            );
+
             // transform.rotation = transform
                 // .looking_at(transform.translation
                             // + wavedata.normal,
