@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use std::ops::AddAssign;
+use std::f32::consts::{PI,FRAC_PI_2};
 
 pub struct Water {
     pub waves: [WaveProperties; 3],
@@ -48,7 +49,7 @@ fn gerstner_wave(
     let d = props.direction.normalize();
 
     let position_xz = Vec2::new(position.x, position.z);
-    let k = 2. * std::f32::consts::PI / props.wavelength;
+    let k = 2. * PI / props.wavelength;
     let c = (9.8 / k).sqrt(); // Wave speed
     let f = k * (position_xz.dot(d) - c * time);
     let amp_noise = 1.;

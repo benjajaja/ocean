@@ -23,7 +23,7 @@ fn main() {
         .add_asset::<SkyMaterial>()
         .add_resource(ClearColor(Color::rgb(0., 0., 0.)))
         .add_resource(Weather {
-            wave_intensity: 0.5,
+            wave_intensity: 1.0,
         })
         .add_startup_system(setup.system())
         .add_startup_system(spawn_sky.system())
@@ -426,9 +426,10 @@ fn boat_physics_system(
     if let Some((mut boat, mut boat_transform)) = boat_query.iter_mut().next() {
         if let Some((water, mut water_transform)) = water_transform_query.iter_mut().next() {
             boat.world_rotation += -boat.steer * time.delta_seconds;
+            let world_rotation_quat = Quat::from_rotation_y(boat.world_rotation);
 
             let thrust_vector = Vec3::new(0., 0., boat.thrust * 0.6);
-            let jump = Quat::from_rotation_y(boat.world_rotation).mul_vec3(thrust_vector);
+            let jump = world_rotation_quat.mul_vec3(thrust_vector);
 
             boat_transform.translation += jump;
 
@@ -458,6 +459,10 @@ fn boat_physics_system(
             water_transform.translation.y = -wavedata.position.y;
 
             boat_transform.rotation = water::surface_quat(wavedata, boat.world_rotation);
+
+            let steepness = (Quat::from_rotation_x(FRAC_PI_2) * world_rotation_quat).normalize()
+                .dot(boat_transform.rotation);
+            println!("steepness {}", steepness);
         }
     }
 }
@@ -531,7 +536,6 @@ fn wave_probe_system(
                 time.seconds_since_startup as f32 * WAVE_SPEED
             );
             transform.translation.y = wavedata.position.y + water_transform.translation.y;
-
 
             transform.rotation = water::surface_quat(wavedata, swimmer.world_rotation);
         }
