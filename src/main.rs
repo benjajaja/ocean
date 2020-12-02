@@ -252,6 +252,7 @@ fn setup(
             thrust: 0.,
             steer: 0.,
             world_rotation: 0.,
+            speed: 0.,
         })
 
 
@@ -315,7 +316,7 @@ fn spawn_sky(
 const INPUT_ACCEL: f32 = 10.0;
 const INPUT_DECAY: f32 = 10.0;
 const STEER_ACCEL: f32 = 20.0;
-const BOAT_MAX_SPEED: f32 = 10.2;
+const BOAT_MAX_THRUST: f32 = 2.;
 fn keyboard_input_system(
     time: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
@@ -326,8 +327,8 @@ fn keyboard_input_system(
         let mut print = false;
 
         if keyboard_input.pressed(KeyCode::W) {
-            if boat.thrust < 1.0 {
-                boat.thrust = (boat.thrust + INPUT_ACCEL * time.delta_seconds).min(BOAT_MAX_SPEED);
+            if boat.thrust < BOAT_MAX_THRUST {
+                boat.thrust = (boat.thrust + INPUT_ACCEL * time.delta_seconds).min(BOAT_MAX_THRUST);
                 print = true;
             }
         } else if boat.thrust > 0.0 {
@@ -405,6 +406,8 @@ fn boat_physics_system(
             let jump = world_rotation_quat.mul_vec3(thrust_vector);
 
             boat_transform.translation += jump;
+
+            boat.speed = jump.length();
 
 
             // rotate skydome from boat jump

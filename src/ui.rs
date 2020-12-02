@@ -18,6 +18,9 @@ fn spawn_ui(
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
+    let font = asset_server.load("fonts/Rainbow100_re_66.ttf");
+    let font_size = 32.;
+
     commands
         .spawn(UiCameraBundle::default())
         .spawn(NodeBundle {
@@ -36,7 +39,7 @@ fn spawn_ui(
             .spawn(NodeBundle {
                 style: Style {
                     justify_content: JustifyContent::SpaceBetween,
-                    border: Rect::all(Val::Px(2.0)),
+                    padding: Rect::all(Val::Px(5.0)),
                     ..Default::default()
                 },
                 material: materials.add(Color::NONE.into()),
@@ -50,10 +53,10 @@ fn spawn_ui(
                         },
                         text: Text {
                             value: "♥♥♥".to_string(),
-                            font: asset_server.load("fonts/3270/3270-Regular.ttf"),
+                            font: font.clone(),
                             style: TextStyle {
-                                font_size: 60.0,
-                                color: Color::BLUE,
+                                font_size,
+                                color: Color::RED,
                                 ..Default::default()
                             },
                         },
@@ -65,10 +68,10 @@ fn spawn_ui(
                             ..Default::default()
                         },
                         text: Text {
-                            value: "0.00thr".to_string(),
-                            font: asset_server.load("fonts/3270/3270-Regular.ttf"),
+                            value: "0.00speed".to_string(),
+                            font: font.clone(),
                             style: TextStyle {
-                                font_size: 60.0,
+                                font_size,
                                 color: Color::GRAY,
                                 ..Default::default()
                             },
@@ -94,9 +97,9 @@ fn spawn_ui(
                         },
                         text: Text {
                             value: "FPS: ...".to_string(),
-                            font: asset_server.load("fonts/3270/3270-Regular.ttf"),
+                            font: font.clone(),
                             style: TextStyle {
-                                font_size: 60.0,
+                                font_size,
                                 color: Color::WHITE,
                                 ..Default::default()
                             },
@@ -124,7 +127,7 @@ fn text_update_system(
     }
     for mut text in boat_hud_query.iter_mut() {
         if let Some(boat) = boat_query.iter().next() {
-            text.value = format!("{:.2}thr", boat.thrust);
+            text.value = format!("{:.2}speed", boat.speed);
         }
     }
 }
