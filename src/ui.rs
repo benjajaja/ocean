@@ -68,7 +68,7 @@ fn spawn_ui(
                             ..Default::default()
                         },
                         text: Text {
-                            value: "0.00speed".to_string(),
+                            value: "0.00speed 0.00att".to_string(),
                             font: font.clone(),
                             style: TextStyle {
                                 font_size,
@@ -127,7 +127,7 @@ fn text_update_system(
     }
     for mut text in boat_hud_query.iter_mut() {
         if let Some(boat) = boat_query.iter().next() {
-            text.value = format!("{:.2}speed", boat.speed);
+            text.value = format!("{:.2}speed {:.10}att", boat.speed, boat.nose_angle);
         }
     }
 }

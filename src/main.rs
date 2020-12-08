@@ -21,22 +21,17 @@ fn main() {
     app
         .add_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins)
-        .add_asset::<WaterMaterial>()
         .add_asset::<SkyMaterial>()
         .add_resource(ClearColor(Color::rgb(0., 0., 0.)))
-        .add_resource(Weather {
-            wave_intensity: 1.0,
-        })
-        .add_startup_system(setup.system())
-        .add_startup_system(spawn_sky.system())
-        .add_system(bevy::input::system::exit_on_esc_system.system())
+        .add_startup_system(setup)
+        .add_startup_system(spawn_sky)
+        .add_system(bevy::input::system::exit_on_esc_system)
 
-        .add_system(water_update_system.system())
-        .add_system(keyboard_input_system.system())
-        .add_system(boat_physics_system.system())
-        .add_system(camera_system.system())
-        .add_system(wave_probe_system.system());
+        .add_system(keyboard_input_system)
+        .add_system(boat_physics_system)
+        .add_system(camera_system);
 
+    water::add_systems(&mut app);
     ui::add_systems(&mut app);
     app.run();
 }
@@ -60,28 +55,6 @@ impl LookingUp {
     }
 }
 
-struct Swimmer {
-    world_rotation: f32, // y angle in radians
-}
-impl Default for Swimmer {
-    #[inline]
-    fn default() -> Self {
-        Swimmer {
-            world_rotation: 0.,
-        }
-    }
-}
-
-#[derive(RenderResources, Default, TypeUuid)]
-#[uuid = "0320b9b8-b3a3-4baa-8bfa-c94008177b17"]
-struct WaterMaterial {
-    pub time: f32,
-    pub color: Vec4,
-    pub camera: Vec3,
-    pub wave1: Vec4,
-    pub wave2: Vec4,
-    pub wave3: Vec4,
-}
 
 #[derive(RenderResources, Default, TypeUuid)]
 #[uuid = "0320b9b8-dead-beef-8bfa-c94008177b17"]
@@ -90,40 +63,16 @@ struct SkyMaterial {
 }
 struct SkyDome;
 
-struct Weather {
-    wave_intensity: f32,
-}
-
-const WATER_VERTEX_SHADER: &str = include_str!("../assets/shaders/water.vert");
-const WATER_FRAGMENT_SHADER: &str = include_str!("../assets/shaders/water.frag");
 const SKY_VERTEX_SHADER: &str = include_str!("../assets/shaders/sky.vert");
 const SKY_FRAGMENT_SHADER: &str = include_str!("../assets/shaders/sky.frag");
 
-const WAVE_SPEED: f32 = 0.8;
 
 fn setup(
     commands: &mut Commands,
-    mut pipelines: ResMut<Assets<PipelineDescriptor>>,
-    mut shaders: ResMut<Assets<Shader>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut water_materials: ResMut<Assets<WaterMaterial>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut render_graph: ResMut<RenderGraph>,
     asset_server: Res<AssetServer>,
-    weather: Res<Weather>,
 ) {
-    let water_pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
-        vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, WATER_VERTEX_SHADER)),
-        fragment: Some(shaders.add(Shader::from_glsl(ShaderStage::Fragment, WATER_FRAGMENT_SHADER))),
-    }));
-    render_graph.add_system_node(
-        "WaterMaterial",
-        AssetRenderResourcesNode::<WaterMaterial>::new(true),
-    );
-    render_graph.add_node_edge(
-        "WaterMaterial",
-        base::node::MAIN_PASS,
-    ).unwrap();
 
 
     // let palmtree = asset_server.load("palmera.glb");
@@ -137,13 +86,6 @@ fn setup(
         ..Default::default()
     };
 
-    let mut water = water::Water {
-        waves: water::get_waves(weather.wave_intensity),
-    };
-    water::set_waves(&mut water, weather.wave_intensity);
-
-    let debug_waves = water::get_waves(weather.wave_intensity);
-    println!("first wave: {} / {}", debug_waves[0].wavelength, debug_waves[0].steepness);
 
     let camera = Camera3dBundle {
         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0))
@@ -165,7 +107,7 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(5.0, 0.0, 0.0)),
             ..Default::default()
         })
-        .with(Swimmer {
+        .with(water::Swimmer {
             world_rotation: PI / 4.,
             ..Default::default()
         })
@@ -183,7 +125,7 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(5.0, 0.0, 20.0)),
             ..Default::default()
         })
-        .with(Swimmer {
+        .with(water::Swimmer {
             ..Default::default()
         })
 
@@ -195,44 +137,13 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(-10.0, 0.0, 5.0)),
             ..Default::default()
         })
-        .with(Swimmer::default())
+        .with(water::Swimmer::default())
 
 
         .spawn(LightBundle {
             transform: Transform::from_translation(Vec3::new(4.0, 50.0, 4.0)),
             ..Default::default()
         })
-
-        .spawn(MeshBundle {
-            mesh: asset_server.load("plano.glb#Mesh0/Primitive0"),
-            render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::new(
-                water_pipeline_handle,
-            )]),
-            transform: Transform::from_scale(Vec3::new(200.0, 200.0, 200.0)),
-            ..Default::default()
-        })
-        .with_children(|parent| {
-            parent.spawn(PbrBundle {
-                mesh: meshes.add(Mesh::from(shape::Plane { size: 500.0 })),
-                // material: materials.add(Color::rgb(0.0, 0.0, 0.6).into()),
-                material: materials.add(StandardMaterial {
-                    shaded: false,
-                    albedo: Color::rgb(0.0, 0.01, 0.2).into(),
-                    ..Default::default()
-                }),
-                transform: Transform::from_translation(Vec3::new(0.0, -1.0, 0.0)),
-                ..Default::default()
-            });
-        })
-        .with(water_materials.add(WaterMaterial {
-            time: 0.,
-            color: Vec4::new(0.1, 0.5, 0.5, 1.0),
-            camera: Vec3::new(0., 0., 0.),
-            wave1: water.waves[0].to_vec4(),
-            wave2: water.waves[1].to_vec4(),
-            wave3: water.waves[2].to_vec4(),
-        }))
-        .with(water)
 
         .spawn(PbrBundle {
             // mesh: asset_server.load("flota1.glb#Mesh0/Primitive0"),
@@ -253,6 +164,9 @@ fn setup(
             steer: 0.,
             world_rotation: 0.,
             speed: 0.,
+            last_normal: Quat::identity(),
+            nose_angle: 0.,
+            airborne: None,
         })
 
 
@@ -260,7 +174,8 @@ fn setup(
         .with(CameraTracker {
             bobber: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             looking_up: LookingUp::None,
-        });
+        })
+        .with(water::WaterCamera);
 }
 
 fn spawn_sky(
@@ -365,32 +280,13 @@ fn keyboard_input_system(
             }
         }
 
-        if print {
-            println!("boat {} / {}", boat.thrust, boat.steer);
-        }
+        // if print {
+            // println!("boat {} / {}", boat.thrust, boat.steer);
+        // }
     }
 }
 
 const WATER_TRANSLATE_STEP: f32 = 20.;
-fn water_update_system(
-    time: Res<Time>,
-    // weather: Res<Weather>,
-    mut water_mats: ResMut<Assets<WaterMaterial>>,
-    water_material_query: Query<&Handle<WaterMaterial>>,
-    camera_query: Query<(&Transform, &CameraTracker)>,
-) {
-    if let Some(water_material) = water_material_query.iter().next()
-            .and_then(|water_handle| water_mats.get_mut(water_handle))
-    {
-        water_material.time = time.seconds_since_startup as f32 * WAVE_SPEED;
-
-
-        if let Some((transform, _)) = camera_query.iter().next() {
-            water_material.camera = transform.translation;
-        }
-    }
-}
-
 fn boat_physics_system(
     time: Res<Time>,
     mut boat_query: Query<(&mut PlayerBoat, &mut Transform)>,
@@ -402,10 +298,12 @@ fn boat_physics_system(
             boat.world_rotation += -boat.steer * time.delta_seconds;
             let world_rotation_quat = Quat::from_rotation_y(boat.world_rotation);
 
-            let thrust_vector = Vec3::new(0., 0., boat.thrust * 0.6);
+            let speed = boat.thrust * 0.6;
+                // + boat.thrust * boat.nose_angle.abs();
+            let thrust_vector = Vec3::new(0., 0., speed);
             let jump = world_rotation_quat.mul_vec3(thrust_vector);
 
-            boat_transform.translation += jump;
+            let new_translation = boat_transform.translation + jump;
 
             boat.speed = jump.length();
 
@@ -425,20 +323,47 @@ fn boat_physics_system(
             // water_material.wave3 = water.waves[2].to_vec4();
 
             // move water plane along in steps to avoid vertex jither
-            water_transform.translation.x = boat_transform.translation.x - boat_transform.translation.x % WATER_TRANSLATE_STEP;
-            water_transform.translation.z = boat_transform.translation.z - boat_transform.translation.z % WATER_TRANSLATE_STEP;
+            water_transform.translation.x = new_translation.x - new_translation.x % WATER_TRANSLATE_STEP;
+            water_transform.translation.z = new_translation.z - new_translation.z % WATER_TRANSLATE_STEP;
             let wavedata = water.wave_data_at_point(
-                Vec2::new(boat_transform.translation.x, boat_transform.translation.z),
-                time.seconds_since_startup as f32 * WAVE_SPEED
+                Vec2::new(new_translation.x, new_translation.z),
+                time.seconds_since_startup as f32 * water.wave_speed,
             );
-            // "anchor" water plane at boat
-            water_transform.translation.y = -wavedata.position.y;
 
-            boat_transform.rotation = water::surface_quat(wavedata, boat.world_rotation);
+            if let Some((origin, radians, t)) = boat.airborne {
+                let tt = t + time.delta_seconds;
+                let new_y = (origin.y + boat.speed * tt * radians.sin() - 0.5 * 9.81 * tt * tt) * -1.;
+                boat.airborne = None;
+                println!("airborne ended {}/{}", wavedata.position.y, water_transform.translation.y);
+                // water_transform.translation.y = new_y;
+                // if new_y > boat_transform.translation.y && wavedata.position.y >= -water_transform.translation.y {
+                    // boat.airborne = None;
+                    // println!("airborne ended {}/{}", wavedata.position.y, water_transform.translation.y);
+                // } else {
+                // boat.airborne = Some((origin, radians, tt));
 
-            let steepness = (Quat::from_rotation_x(FRAC_PI_2) * world_rotation_quat).normalize()
-                .dot(boat_transform.rotation);
-            println!("steepness {}", steepness);
+            } else {
+                let normal_quat = water::surface_quat(&wavedata);
+                let world_rotation = normal_quat * world_rotation_quat;
+
+                let forward_vec = world_rotation.mul_vec3(Vec3::unit_z());
+                let cosine = normal_quat.dot(boat.last_normal);
+                boat.nose_angle = (1. - cosine) * FRAC_PI_2;
+                boat.last_normal = normal_quat;
+
+                // "anchor" water plane at boat
+                water_transform.translation.y = -wavedata.position.y;
+
+
+                if forward_vec.y > 0. && boat.speed > 1.0 && boat.nose_angle > PI / 8. {
+                    // boat.airborne = Some((forward_vec, boat.nose_angle, 0.));
+                    println!("airborne now");
+                    boat_transform.rotation = boat.last_normal * world_rotation_quat;
+                } else {
+                    boat_transform.rotation = normal_quat * world_rotation_quat;
+                }
+            }
+            boat_transform.translation = new_translation;
         }
     }
 }
@@ -499,22 +424,3 @@ fn camera_system(
         }
     }
 }
-
-fn wave_probe_system(
-    time: Res<Time>,
-    mut wave_probes_query: Query<(&Swimmer, &mut Transform)>,
-    water_query: Query<(&water::Water, &Transform)>,
-) {
-    if let Some((water, water_transform)) = water_query.iter().next() {
-        for (swimmer, mut transform) in wave_probes_query.iter_mut() {
-            let wavedata = water.wave_data_at_point(
-                Vec2::new(transform.translation.x * 1., transform.translation.z * 1.),
-                time.seconds_since_startup as f32 * WAVE_SPEED
-            );
-            transform.translation.y = wavedata.position.y + water_transform.translation.y;
-
-            transform.rotation = water::surface_quat(wavedata, swimmer.world_rotation);
-        }
-    }
-}
-
