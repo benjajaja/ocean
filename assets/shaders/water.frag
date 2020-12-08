@@ -1,12 +1,12 @@
 #version 450
 
-layout(set = 1, binding = 1) uniform WaterMaterial_time {
+layout(set = 2, binding = 0) uniform WaterMaterial_time {
     float time;
 };
-layout(set = 1, binding = 2) uniform WaterMaterial_color {
-    vec4 color;
+layout(set = 2, binding = 1) uniform WaterMaterial_color {
+    vec3 color;
 };
-layout(set = 1, binding = 3) uniform WaterMaterial_camera {
+layout(set = 2, binding = 2) uniform WaterMaterial_camera {
     vec3 camera;
 };
 

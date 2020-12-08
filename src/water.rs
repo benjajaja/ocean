@@ -6,7 +6,7 @@ use bevy::{
         renderer::RenderResources,
         shader::{ShaderStage, ShaderStages},
     },
-    type_registry::TypeUuid,
+    reflect::TypeUuid,
 };
 use std::ops::AddAssign;
 use std::f32::consts::{PI};
@@ -259,7 +259,7 @@ pub fn wave_probe_system(
         for (swimmer, mut transform) in wave_probes_query.iter_mut() {
             let wavedata = water.wave_data_at_point(
                 Vec2::new(transform.translation.x * 1., transform.translation.z * 1.),
-                time.seconds_since_startup as f32 * water.wave_speed,
+                time.seconds_since_startup() as f32 * water.wave_speed,
             );
             transform.translation.y = wavedata.position.y + water_transform.translation.y;
 
@@ -280,7 +280,7 @@ fn update_system(
             .and_then(|water_handle| water_mats.get_mut(water_handle))
     {
         if let Some(water) = water_query.iter().next() {
-            water_material.time = time.seconds_since_startup as f32 * water.wave_speed;
+            water_material.time = time.seconds_since_startup() as f32 * water.wave_speed;
         }
 
 

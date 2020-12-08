@@ -6,7 +6,7 @@ use bevy::{
         renderer::RenderResources,
         shader::{ShaderStage, ShaderStages},
     },
-    type_registry::TypeUuid,
+    reflect::TypeUuid,
 };
 use std::f32::consts::{PI,FRAC_PI_2};
 mod boat;
@@ -243,30 +243,30 @@ fn keyboard_input_system(
 
         if keyboard_input.pressed(KeyCode::W) {
             if boat.thrust < BOAT_MAX_THRUST {
-                boat.thrust = (boat.thrust + INPUT_ACCEL * time.delta_seconds).min(BOAT_MAX_THRUST);
+                boat.thrust = (boat.thrust + INPUT_ACCEL * time.delta_seconds()).min(BOAT_MAX_THRUST);
                 print = true;
             }
         } else if boat.thrust > 0.0 {
-            boat.thrust = (boat.thrust - INPUT_DECAY * time.delta_seconds).max(0.0);
+            boat.thrust = (boat.thrust - INPUT_DECAY * time.delta_seconds()).max(0.0);
             print = true;
         }
 
         if keyboard_input.pressed(KeyCode::A) {
             if boat.steer > -1.0 {
-                boat.steer = (boat.steer - STEER_ACCEL * time.delta_seconds).max(-1.0);
+                boat.steer = (boat.steer - STEER_ACCEL * time.delta_seconds()).max(-1.0);
                 print = true;
             }
         } else if boat.steer < 0.0 {
-            boat.steer = (boat.steer + INPUT_DECAY * time.delta_seconds).min(0.0);
+            boat.steer = (boat.steer + INPUT_DECAY * time.delta_seconds()).min(0.0);
             print = true;
         }
         if keyboard_input.pressed(KeyCode::D) {
             if boat.steer < 1.0 {
-                boat.steer = (boat.steer + STEER_ACCEL * time.delta_seconds).min(1.0);
+                boat.steer = (boat.steer + STEER_ACCEL * time.delta_seconds()).min(1.0);
                 print = true;
             }
         } else if boat.steer > 0.0 {
-            boat.steer = (boat.steer - INPUT_DECAY * time.delta_seconds).max(0.0);
+            boat.steer = (boat.steer - INPUT_DECAY * time.delta_seconds()).max(0.0);
             print = true;
         }
 
@@ -295,7 +295,7 @@ fn boat_physics_system(
 ) {
     if let Some((mut boat, mut boat_transform)) = boat_query.iter_mut().next() {
         if let Some((water, mut water_transform)) = water_transform_query.iter_mut().next() {
-            boat.world_rotation += -boat.steer * time.delta_seconds;
+            boat.world_rotation += -boat.steer * time.delta_seconds();
             let world_rotation_quat = Quat::from_rotation_y(boat.world_rotation);
 
             let speed = boat.thrust * 0.6;
@@ -327,11 +327,11 @@ fn boat_physics_system(
             water_transform.translation.z = new_translation.z - new_translation.z % WATER_TRANSLATE_STEP;
             let wavedata = water.wave_data_at_point(
                 Vec2::new(new_translation.x, new_translation.z),
-                time.seconds_since_startup as f32 * water.wave_speed,
+                time.seconds_since_startup() as f32 * water.wave_speed,
             );
 
             if let Some((origin, radians, t)) = boat.airborne {
-                let tt = t + time.delta_seconds;
+                let tt = t + time.delta_seconds();
                 let new_y = (origin.y + boat.speed * tt * radians.sin() - 0.5 * 9.81 * tt * tt) * -1.;
                 boat.airborne = None;
                 println!("airborne ended {}/{}", wavedata.position.y, water_transform.translation.y);
@@ -386,7 +386,7 @@ fn camera_system(
                     Vec3::unit_y(),
                     boat.world_rotation
                 ).normalize(),
-                time.delta_seconds * CAMERA_ROTATION_FACTOR
+                time.delta_seconds() * CAMERA_ROTATION_FACTOR
             );
 
             transform.translation = camera.bobber.translation
@@ -398,13 +398,13 @@ fn camera_system(
             let mut looking_at = camera.bobber.translation;
             match camera.looking_up {
                 LookingUp::LookingUp(mut look) => {
-                    look += look + time.delta_seconds * 0.5;
+                    look += look + time.delta_seconds() * 0.5;
                     look = look.min(1.);
                     looking_at += Vec3::new(0., 100. * look, 0.);
                     camera.looking_up = LookingUp::LookingUp(look);
                 }
                 LookingUp::LookingDown(mut look) => {
-                    look -= time.delta_seconds * 2.5;
+                    look -= time.delta_seconds() * 2.5;
                     look = look.max(0.);
                     looking_at += Vec3::new(0., 100. * look, 0.);
 

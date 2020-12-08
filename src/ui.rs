@@ -22,7 +22,7 @@ fn spawn_ui(
     let font_size = 32.;
 
     commands
-        .spawn(UiCameraBundle::default())
+        .spawn(CameraUiBundle::default())
         .spawn(NodeBundle {
             style: Style {
                 size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
