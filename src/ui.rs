@@ -127,7 +127,7 @@ fn text_update_system(
     }
     for mut text in boat_hud_query.iter_mut() {
         if let Some(boat) = boat_query.iter().next() {
-            text.value = format!("{:.2}speed {:.10}att", boat.speed, boat.nose_angle);
+            text.value = format!("{:.2}speed {:.4}att", boat.speed, boat.nose_angle);
         }
     }
 }

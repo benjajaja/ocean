@@ -87,12 +87,6 @@ fn setup(
     };
 
 
-    let camera = Camera3dBundle {
-        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0))
-                .looking_at(Vec3::new(0.0, 5.0, 1000.0), Vec3::unit_y()),
-        ..Default::default()
-    };
-
     // Setup our world
     commands
         // .spawn_scene(asset_server.load("palmera.glb"))
@@ -145,17 +139,17 @@ fn setup(
             ..Default::default()
         })
 
-        .spawn(PbrBundle {
-            // mesh: asset_server.load("flota1.glb#Mesh0/Primitive0"),
-            // material: materials.add(Color::rgb(0.2, 0.8, 0.6).into()),
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
-            ..Default::default()
-        })
+        .spawn((Transform::default(), GlobalTransform::default()))
         .with_children(|parent| {
             parent.spawn(PbrBundle {
                 mesh: asset_server.load("flota1.glb#Mesh0/Primitive0"),
                 material: materials.add(Color::rgb(0.2, 0.8, 0.6).into()),
                 transform: Transform::from_rotation(Quat::from_rotation_y(FRAC_PI_2)), // the gltf is not looking at -z
+                ..Default::default()
+            });
+            parent.spawn(PbrBundle {
+                mesh: meshes.add(Mesh::from(shape::Cube { size: 0.5 })),
+                material: materials.add(Color::rgb(1.0, 0.8, 0.6).into()),
                 ..Default::default()
             });
         })
@@ -170,7 +164,11 @@ fn setup(
         })
 
 
-        .spawn(camera)
+        .spawn(Camera3dBundle {
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0))
+                    .looking_at(Vec3::new(0.0, 5.0, 1000.0), Vec3::unit_y()),
+            ..Default::default()
+        })
         .with(CameraTracker {
             bobber: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             looking_up: LookingUp::None,
@@ -185,6 +183,7 @@ fn spawn_sky(
     mut meshes: ResMut<Assets<Mesh>>,
     mut sky_materials: ResMut<Assets<SkyMaterial>>,
     mut render_graph: ResMut<RenderGraph>,
+    materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
     let sky_pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
@@ -201,6 +200,7 @@ fn spawn_sky(
     ).unwrap();
 
     let texture_handle: Handle<Texture> = asset_server.load("star.png");
+    let texture_handle_islands: Handle<Texture> = asset_server.load("palmtree_sky.png");
 
     let render_pipelines = RenderPipelines::from_pipelines(vec![RenderPipeline::new(
         sky_pipeline_handle,
@@ -210,21 +210,28 @@ fn spawn_sky(
         texture: texture_handle,
     });
 
+    let sky_material_islands = sky_materials.add(SkyMaterial {
+        texture: texture_handle_islands,
+    });
+
+
     commands.spawn(PbrBundle {
-        mesh: meshes.add(stripe::stars()),
+        mesh: meshes.add(stripe::bg_stars()),
         render_pipelines: render_pipelines.clone(),
         ..Default::default()
     })
-    .with_children(|parent| {
-        // parent.spawn(PbrBundle {
-            // mesh: asset_server.load("palmera.glb#Mesh3/Primitive0"),
-            // render_pipelines: render_pipelines,
-            // transform: Transform::from_translation(Vec3::new(0., 0., 1000.))
-                // * Transform::from_scale(Vec3::new(10., 10., 10.)),
-            // ..Default::default()
-        // });
-    })
     .with(sky_material)
+    .with(SkyDome);
+
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(stripe::island_stars(vec![stripe::StarDef {
+            quat: Quat::from_rotation_z(PI),
+            size: 0.025,
+        }])),
+        render_pipelines: render_pipelines.clone(),
+        ..Default::default()
+    })
+    .with(sky_material_islands)
     .with(SkyDome);
 }
 
@@ -292,6 +299,7 @@ fn boat_physics_system(
     mut boat_query: Query<(&mut PlayerBoat, &mut Transform)>,
     mut water_transform_query: Query<(&mut water::Water, &mut Transform)>,
     mut skydome_query: Query<(&mut SkyDome, &mut Transform)>,
+    mut commands: &mut Commands,
 ) {
     if let Some((mut boat, mut boat_transform)) = boat_query.iter_mut().next() {
         if let Some((water, mut water_transform)) = water_transform_query.iter_mut().next() {
@@ -308,12 +316,9 @@ fn boat_physics_system(
             boat.speed = jump.length();
 
 
-            // rotate skydome from boat jump
-            if let Some((_sky, mut sky_transform)) = skydome_query.iter_mut().next() {
-                let right_angle = Quat::from_rotation_y(FRAC_PI_2);
-                let rotation_axis = right_angle.mul_vec3(jump);
-                let rotation = Quat::from_axis_angle(rotation_axis, -jump.length() * 0.001);
-                sky_transform.rotation = rotation.mul_quat(sky_transform.rotation).normalize();
+            // rotate skydomes from boat jump
+            for (_, mut sky_transform) in skydome_query.iter_mut() {
+                move_skydome(&jump, &mut sky_transform, &mut commands);
             }
 
             // TODO: make weather_update_system
@@ -348,14 +353,14 @@ fn boat_physics_system(
 
                 let forward_vec = world_rotation.mul_vec3(Vec3::unit_z());
                 let cosine = normal_quat.dot(boat.last_normal);
-                boat.nose_angle = (1. - cosine) * FRAC_PI_2;
+                boat.nose_angle = cosine;
                 boat.last_normal = normal_quat;
 
                 // "anchor" water plane at boat
                 water_transform.translation.y = -wavedata.position.y;
 
 
-                if forward_vec.y > 0. && boat.speed > 1.0 && boat.nose_angle > PI / 8. {
+                if forward_vec.y > 0. && boat.speed > 1.0 && false { // boat.nose_angle > PI / 8. {
                     // boat.airborne = Some((forward_vec, boat.nose_angle, 0.));
                     println!("airborne now");
                     boat_transform.rotation = boat.last_normal * world_rotation_quat;
@@ -423,4 +428,11 @@ fn camera_system(
             ).rotation;
         }
     }
+}
+
+fn move_skydome(jump: &Vec3, sky_transform: &mut Transform, commands: &mut Commands) {
+    let right_angle = Quat::from_rotation_y(FRAC_PI_2);
+    let rotation_axis = right_angle.mul_vec3(*jump);
+    let rotation = Quat::from_axis_angle(rotation_axis, -jump.length() * 0.001);
+    sky_transform.rotation = rotation.mul_quat(sky_transform.rotation).normalize();
 }

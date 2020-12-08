@@ -65,6 +65,7 @@ impl Default for Swimmer {
     }
 }
 
+// just to query, should be elsewhere
 pub struct WaterCamera;
 
 #[derive(RenderResources, Default, TypeUuid)]
@@ -216,20 +217,21 @@ pub fn set_waves(water: &mut Water, intensity: f32) -> () {
 }
 
 pub fn get_waves(intensity: f32) -> [WaveProperties; 3] {
+    const STEEPNESS_FACTOR: f32 = 0.1;
     [
         WaveProperties {
             wavelength: intensity * 60.,
-            steepness: intensity * 0.25,
+            steepness: intensity * STEEPNESS_FACTOR,
             direction: Vec2::new(1.0, 0.0),
         },
         WaveProperties {
             wavelength: intensity * 31.,
-            steepness: intensity * 0.25,
+            steepness: intensity * STEEPNESS_FACTOR,
             direction: Vec2::new(1.0, 0.6),
         },
         WaveProperties {
             wavelength: intensity * 18.,
-            steepness: intensity * 0.25,
+            steepness: intensity * STEEPNESS_FACTOR,
             direction: Vec2::new(1.0, 1.3),
         },
     ]

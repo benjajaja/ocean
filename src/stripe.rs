@@ -70,52 +70,65 @@ fn plane(size: u32) -> Mesh {
 }
 
 const STAR_DISTANCE: f32 = 1.;
-pub fn stars() -> Mesh {
-    const CBRT3: f32 = 1.44224957031; // cubic root of 3
+
+pub struct StarDef {
+    pub quat: Quat,
+    pub size: f32,
+}
+
+pub fn bg_stars() -> Mesh {
+    let mut quat_rng = RandomRotation::new();
+    let mut rng = rand::thread_rng();
+    let dist = Uniform::from(0.001..0.005);
+
+    let mut simple_stars = Vec::new();
+    for _ in 0..1000 {
+        if let Some(quat) = quat_rng.next() {
+            simple_stars.push(StarDef {
+                quat,
+                size: dist.sample(&mut rng),
+            });
+        }
+    }
+    stars(simple_stars)
+}
+pub fn island_stars(defs: Vec<StarDef>) -> Mesh {
+    stars(defs)
+}
+
+fn stars(defs: Vec<StarDef>) -> Mesh {
     fn normal() -> [f32; 3] {
         [0.0, 1.0, 0.1]
     }
-    let size = 0.005;
 
     let mut vertices: Vec<([f32; 3], [f32; 3], [f32; 2])> = vec![];
     let mut tri_indices: Vec<u32> = vec![];
 
-    let h = size / 2. * CBRT3;
-    let offset = h / 3.;
+    // let mut quat_rng = RandomRotation::new();
 
-    let mut quat_rng = RandomRotation::new();
+    fn star_points(size: f32) -> Vec<Vec3> {
+        vec![
+            Vec3::new(-0.5 * size, -0.5 * size, STAR_DISTANCE),
+            Vec3::new(-0.5 * size, 0.5 * size, STAR_DISTANCE),
+            Vec3::new(0.5 * size, -0.5 * size, STAR_DISTANCE),
+            Vec3::new(0.5 * size, 0.5 * size, STAR_DISTANCE),
+        ]
+    }
 
-    let star_points = vec![
-        // Vec3::new(-0.5 * size, 0., STAR_DISTANCE),
-        // Vec3::new(0., h, STAR_DISTANCE),
-        // Vec3::new(0.5 * size , 0., STAR_DISTANCE),
-        // Vec3::new(-0.5 * size, h - offset, STAR_DISTANCE),
-        // Vec3::new(0., -offset, STAR_DISTANCE),
-        // Vec3::new(0.5 * size , h - offset, STAR_DISTANCE),
-
-        Vec3::new(-0.5 * size, -0.5 * size, STAR_DISTANCE),
-        Vec3::new(-0.5 * size, 0.5 * size, STAR_DISTANCE),
-        Vec3::new(0.5 * size, -0.5 * size, STAR_DISTANCE),
-        Vec3::new(0.5 * size, 0.5 * size, STAR_DISTANCE),
-    ];
-
-    for i in 0..1000 {
-        if let Some(quat) = quat_rng.next() {
-
-            for point in &star_points {
-                let rotated = quat.mul_vec3(*point);
-                vertices.push(([rotated.x, rotated.y, rotated.z], normal(), [point.x / size + 0.5, point.y / size + 0.5]));
-            }
-            let index_offset = i * 4;
-            tri_indices.append(&mut vec![
-                               index_offset + 0,
-                               index_offset + 1,
-                               index_offset + 2,
-                               index_offset + 1,
-                               index_offset + 3,
-                               index_offset + 2,
-            ]);
+    for (i, def) in defs.iter().enumerate() {
+        for point in star_points(def.size) {
+            let rotated = def.quat.mul_vec3(point);
+            vertices.push(([rotated.x, rotated.y, rotated.z], normal(), [point.x / def.size + 0.5, point.y / def.size + 0.5]));
         }
+        let index_offset = i as u32 * 4;
+        tri_indices.append(&mut vec![
+                           index_offset + 0,
+                           index_offset + 1,
+                           index_offset + 2,
+                           index_offset + 1,
+                           index_offset + 3,
+                           index_offset + 2,
+        ]);
     }
 
     let indices = Indices::U32(tri_indices);
@@ -140,13 +153,13 @@ pub fn stars() -> Mesh {
     mesh
 }
 
-struct RandomRotation {
+pub struct RandomRotation {
     rng: rand::prelude::ThreadRng,
     dist: rand::distributions::Uniform<f32>,
 }
 
 impl RandomRotation {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let rng = rand::thread_rng();
         RandomRotation {
             rng,

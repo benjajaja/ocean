@@ -14,9 +14,6 @@ layout(set = 2, binding = 2) uniform sampler SkyMaterial_texture_sampler;
 
 
 void main() {
-    o_Target = texture(
-        sampler2D(SkyMaterial_texture, SkyMaterial_texture_sampler),
-        v_Uv
-    );
+    o_Target = texture(sampler2D(SkyMaterial_texture, SkyMaterial_texture_sampler), v_Uv);
 }
 
