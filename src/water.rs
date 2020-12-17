@@ -88,9 +88,9 @@ pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::A
         .add_resource(Weather {
             wave_intensity: 1.0,
         })
-        .add_startup_system(setup)
-        .add_system(update_system)
-        .add_system(wave_probe_system)
+        .add_startup_system(setup.system())
+        .add_system(update_system.system())
+        .add_system(wave_probe_system.system())
 }
 
 fn setup(

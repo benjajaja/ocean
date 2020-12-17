@@ -23,13 +23,13 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_asset::<SkyMaterial>()
         .add_resource(ClearColor(Color::rgb(0., 0., 0.)))
-        .add_startup_system(setup)
-        .add_startup_system(spawn_sky)
-        .add_system(bevy::input::system::exit_on_esc_system)
+        .add_startup_system(setup.system())
+        .add_startup_system(spawn_sky.system())
+        .add_system(bevy::input::system::exit_on_esc_system.system())
 
-        .add_system(keyboard_input_system)
-        .add_system(boat_physics_system)
-        .add_system(camera_system);
+        .add_system(keyboard_input_system.system())
+        .add_system(boat_physics_system.system())
+        .add_system(camera_system.system());
 
     water::add_systems(&mut app);
     ui::add_systems(&mut app);

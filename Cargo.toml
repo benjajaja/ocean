@@ -9,6 +9,6 @@ edition = "2018"
 [dependencies]
 rand = "0.7.3"
 #bevy = "0.3.0" # make sure this is the latest version
-bevy = { git = "https://github.com/bevyengine/bevy", rev = "3d386a77b406ee65d6965ad91b29ea3acb8bcf3a" }
+bevy = { git = "https://github.com/bevyengine/bevy", rev = "841755aaf23acfd55b375c37390daeb302c5b30b" }
 #bevy = { git = "https://github.com/bevyengine/bevy" }
 #bevy = { path = "../bevy" }
