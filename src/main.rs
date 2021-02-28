@@ -1,34 +1,33 @@
 use bevy::{
     prelude::*,
+    reflect::TypeUuid,
     render::{
         pipeline::{PipelineDescriptor, RenderPipeline},
         render_graph::{base, AssetRenderResourcesNode, RenderGraph},
         renderer::RenderResources,
         shader::{ShaderStage, ShaderStages},
     },
-    reflect::TypeUuid,
 };
-use std::f32::consts::{PI,FRAC_PI_2};
+use std::f32::consts::{FRAC_PI_2, PI};
 mod boat;
 use boat::PlayerBoat;
-mod water;
 mod stripe;
 mod ui;
+mod water;
 
 /// This example illustrates how to add a custom attribute to a mesh and use it in a custom shader.
 fn main() {
     let mut app = App::build();
-    app
-        .add_resource(Msaa { samples: 4 })
+    app.add_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins)
         .add_asset::<SkyMaterial>()
         .add_resource(ClearColor(Color::rgb(0., 0., 0.)))
         .add_startup_system(setup.system())
         .add_startup_system(spawn_sky.system())
         .add_system(bevy::input::system::exit_on_esc_system.system())
-
         .add_system(keyboard_input_system.system())
         .add_system(boat_physics_system.system())
+        .add_system(island_spawn_system.system())
         .add_system(camera_system.system());
 
     water::add_systems(&mut app);
@@ -55,7 +54,6 @@ impl LookingUp {
     }
 }
 
-
 #[derive(RenderResources, Default, TypeUuid)]
 #[uuid = "0320b9b8-dead-beef-8bfa-c94008177b17"]
 struct SkyMaterial {
@@ -66,15 +64,12 @@ struct SkyDome;
 const SKY_VERTEX_SHADER: &str = include_str!("../assets/shaders/sky.vert");
 const SKY_FRAGMENT_SHADER: &str = include_str!("../assets/shaders/sky.frag");
 
-
 fn setup(
     commands: &mut Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
-
-
     // let palmtree = asset_server.load("palmera.glb");
     let mut palmtree_transform = Transform::from_translation(Vec3::new(-5.0, -3.0, 5.0));
     palmtree_transform.scale = Vec3::new(4., 4., 4.);
@@ -86,7 +81,6 @@ fn setup(
         ..Default::default()
     };
 
-
     // Setup our world
     commands
         // .spawn_scene(asset_server.load("palmera.glb"))
@@ -95,8 +89,8 @@ fn setup(
             mesh: asset_server.load("flota1.glb#Mesh0/Primitive0"),
             material: materials.add(Color::rgb(0.0, 0.9, 0.6).into()),
             // material: materials.add(StandardMaterial {
-                // shaded: false,
-                // ..Default::default()
+            // shaded: false,
+            // ..Default::default()
             // }),
             transform: Transform::from_translation(Vec3::new(5.0, 0.0, 0.0)),
             ..Default::default()
@@ -105,15 +99,14 @@ fn setup(
             world_rotation: PI / 4.,
             ..Default::default()
         })
-
         .spawn(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
             // mesh: asset_server.load("helios/scene.gltf#Mesh0/Primitive0"),
             material: materials.add(Color::rgb(0.5, 0.9, 0.6).into()),
             // material: materials.add(Color::rgb(0.0, 0.9, 0.6).into()),
             // material: materials.add(StandardMaterial {
-                // shaded: false,
-                // ..Default::default()
+            // shaded: false,
+            // ..Default::default()
             // }),
             // transform: Transform::from_rotation(Quat::from_rotation_x(-PI / 2.)),
             transform: Transform::from_translation(Vec3::new(5.0, 0.0, 20.0)),
@@ -122,7 +115,6 @@ fn setup(
         .with(water::Swimmer {
             ..Default::default()
         })
-
         .spawn(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 0.5 })),
             material: materials.add(StandardMaterial {
@@ -132,13 +124,10 @@ fn setup(
             ..Default::default()
         })
         .with(water::Swimmer::default())
-
-
         .spawn(LightBundle {
             transform: Transform::from_translation(Vec3::new(4.0, 50.0, 4.0)),
             ..Default::default()
         })
-
         .spawn((Transform::default(), GlobalTransform::default()))
         .with_children(|parent| {
             parent.spawn(PbrBundle {
@@ -162,11 +151,9 @@ fn setup(
             nose_angle: 0.,
             airborne: None,
         })
-
-
         .spawn(Camera3dBundle {
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0))
-                    .looking_at(Vec3::new(0.0, 5.0, 1000.0), Vec3::unit_y()),
+                .looking_at(Vec3::new(0.0, 5.0, 1000.0), Vec3::unit_y()),
             ..Default::default()
         })
         .with(CameraTracker {
@@ -188,23 +175,24 @@ fn spawn_sky(
 ) {
     let sky_pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
         vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, SKY_VERTEX_SHADER)),
-        fragment: Some(shaders.add(Shader::from_glsl(ShaderStage::Fragment, SKY_FRAGMENT_SHADER))),
+        fragment: Some(shaders.add(Shader::from_glsl(
+            ShaderStage::Fragment,
+            SKY_FRAGMENT_SHADER,
+        ))),
     }));
     render_graph.add_system_node(
         "SkyMaterial",
         AssetRenderResourcesNode::<SkyMaterial>::new(true),
     );
-    render_graph.add_node_edge(
-        "SkyMaterial",
-        base::node::MAIN_PASS,
-    ).unwrap();
+    render_graph
+        .add_node_edge("SkyMaterial", base::node::MAIN_PASS)
+        .unwrap();
 
     let texture_handle: Handle<Texture> = asset_server.load("star.png");
     let texture_handle_islands: Handle<Texture> = asset_server.load("palmtree_sky.png");
 
-    let render_pipelines = RenderPipelines::from_pipelines(vec![RenderPipeline::new(
-        sky_pipeline_handle,
-    )]);
+    let render_pipelines =
+        RenderPipelines::from_pipelines(vec![RenderPipeline::new(sky_pipeline_handle)]);
 
     let sky_material = sky_materials.add(SkyMaterial {
         texture: texture_handle,
@@ -214,25 +202,26 @@ fn spawn_sky(
         texture: texture_handle_islands,
     });
 
+    commands
+        .spawn(PbrBundle {
+            mesh: meshes.add(stripe::bg_stars()),
+            render_pipelines: render_pipelines.clone(),
+            ..Default::default()
+        })
+        .with(sky_material)
+        .with(SkyDome);
 
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(stripe::bg_stars()),
-        render_pipelines: render_pipelines.clone(),
-        ..Default::default()
-    })
-    .with(sky_material)
-    .with(SkyDome);
-
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(stripe::island_stars(vec![stripe::StarDef {
-            quat: Quat::from_rotation_z(PI),
-            size: 0.025,
-        }])),
-        render_pipelines: render_pipelines.clone(),
-        ..Default::default()
-    })
-    .with(sky_material_islands)
-    .with(SkyDome);
+    commands
+        .spawn(PbrBundle {
+            mesh: meshes.add(stripe::island_stars(vec![stripe::StarDef {
+                quat: Quat::from_rotation_z(PI),
+                size: 0.025,
+            }])),
+            render_pipelines: render_pipelines.clone(),
+            ..Default::default()
+        })
+        .with(sky_material_islands)
+        .with(SkyDome);
 }
 
 const INPUT_ACCEL: f32 = 10.0;
@@ -250,7 +239,8 @@ fn keyboard_input_system(
 
         if keyboard_input.pressed(KeyCode::W) {
             if boat.thrust < BOAT_MAX_THRUST {
-                boat.thrust = (boat.thrust + INPUT_ACCEL * time.delta_seconds()).min(BOAT_MAX_THRUST);
+                boat.thrust =
+                    (boat.thrust + INPUT_ACCEL * time.delta_seconds()).min(BOAT_MAX_THRUST);
                 print = true;
             }
         } else if boat.thrust > 0.0 {
@@ -288,7 +278,7 @@ fn keyboard_input_system(
         }
 
         // if print {
-            // println!("boat {} / {}", boat.thrust, boat.steer);
+        // println!("boat {} / {}", boat.thrust, boat.steer);
         // }
     }
 }
@@ -307,14 +297,13 @@ fn boat_physics_system(
             let world_rotation_quat = Quat::from_rotation_y(boat.world_rotation);
 
             let speed = boat.thrust * 0.6;
-                // + boat.thrust * boat.nose_angle.abs();
+            // + boat.thrust * boat.nose_angle.abs();
             let thrust_vector = Vec3::new(0., 0., speed);
             let jump = world_rotation_quat.mul_vec3(thrust_vector);
 
             let new_translation = boat_transform.translation + jump;
 
             boat.speed = jump.length();
-
 
             // rotate skydomes from boat jump
             for (_, mut sky_transform) in skydome_query.iter_mut() {
@@ -328,8 +317,10 @@ fn boat_physics_system(
             // water_material.wave3 = water.waves[2].to_vec4();
 
             // move water plane along in steps to avoid vertex jither
-            water_transform.translation.x = new_translation.x - new_translation.x % WATER_TRANSLATE_STEP;
-            water_transform.translation.z = new_translation.z - new_translation.z % WATER_TRANSLATE_STEP;
+            water_transform.translation.x =
+                new_translation.x - new_translation.x % WATER_TRANSLATE_STEP;
+            water_transform.translation.z =
+                new_translation.z - new_translation.z % WATER_TRANSLATE_STEP;
             let wavedata = water.wave_data_at_point(
                 Vec2::new(new_translation.x, new_translation.z),
                 time.seconds_since_startup() as f32 * water.wave_speed,
@@ -337,16 +328,19 @@ fn boat_physics_system(
 
             if let Some((origin, radians, t)) = boat.airborne {
                 let tt = t + time.delta_seconds();
-                let new_y = (origin.y + boat.speed * tt * radians.sin() - 0.5 * 9.81 * tt * tt) * -1.;
+                let new_y =
+                    (origin.y + boat.speed * tt * radians.sin() - 0.5 * 9.81 * tt * tt) * -1.;
                 boat.airborne = None;
-                println!("airborne ended {}/{}", wavedata.position.y, water_transform.translation.y);
-                // water_transform.translation.y = new_y;
-                // if new_y > boat_transform.translation.y && wavedata.position.y >= -water_transform.translation.y {
-                    // boat.airborne = None;
-                    // println!("airborne ended {}/{}", wavedata.position.y, water_transform.translation.y);
-                // } else {
-                // boat.airborne = Some((origin, radians, tt));
-
+                println!(
+                    "airborne ended {}/{}",
+                    wavedata.position.y, water_transform.translation.y
+                );
+            // water_transform.translation.y = new_y;
+            // if new_y > boat_transform.translation.y && wavedata.position.y >= -water_transform.translation.y {
+            // boat.airborne = None;
+            // println!("airborne ended {}/{}", wavedata.position.y, water_transform.translation.y);
+            // } else {
+            // boat.airborne = Some((origin, radians, tt));
             } else {
                 let normal_quat = water::surface_quat(&wavedata);
                 let world_rotation = normal_quat * world_rotation_quat;
@@ -359,8 +353,8 @@ fn boat_physics_system(
                 // "anchor" water plane at boat
                 water_transform.translation.y = -wavedata.position.y;
 
-
-                if forward_vec.y > 0. && boat.speed > 1.0 && false { // boat.nose_angle > PI / 8. {
+                if forward_vec.y > 0. && boat.speed > 1.0 && false {
+                    // boat.nose_angle > PI / 8. {
                     // boat.airborne = Some((forward_vec, boat.nose_angle, 0.));
                     println!("airborne now");
                     boat_transform.rotation = boat.last_normal * world_rotation_quat;
@@ -387,17 +381,12 @@ fn camera_system(
             camera.bobber.translation.z = boat_translation.z;
 
             camera.bobber.rotation = camera.bobber.rotation.slerp(
-                Quat::from_axis_angle(
-                    Vec3::unit_y(),
-                    boat.world_rotation
-                ).normalize(),
-                time.delta_seconds() * CAMERA_ROTATION_FACTOR
+                Quat::from_axis_angle(Vec3::unit_y(), boat.world_rotation).normalize(),
+                time.delta_seconds() * CAMERA_ROTATION_FACTOR,
             );
 
             transform.translation = camera.bobber.translation
-                + camera.bobber.rotation.mul_vec3(
-                    Vec3::new(0.0, 5.0, -15.0)
-                )
+                + camera.bobber.rotation.mul_vec3(Vec3::new(0.0, 5.0, -15.0))
                 + Vec3::new(0.0, -boat.thrust * 1.5, 0.0);
 
             let mut looking_at = camera.bobber.translation;
@@ -422,10 +411,7 @@ fn camera_system(
                 LookingUp::None => {}
             }
 
-            transform.rotation = transform.looking_at(
-                looking_at,
-                Vec3::unit_y()
-            ).rotation;
+            transform.rotation = transform.looking_at(looking_at, Vec3::unit_y()).rotation;
         }
     }
 }
@@ -435,4 +421,11 @@ fn move_skydome(jump: &Vec3, sky_transform: &mut Transform, commands: &mut Comma
     let rotation_axis = right_angle.mul_vec3(*jump);
     let rotation = Quat::from_axis_angle(rotation_axis, -jump.length() * 0.001);
     sky_transform.rotation = rotation.mul_quat(sky_transform.rotation).normalize();
+}
+
+fn island_spawn_system(
+    mut skydome_query: Query<(&SkyDome, &Transform)>,
+    mut commands: &mut Commands,
+) {
+    if let Some((_, sky_transform)) = skydome_query.iter_mut().next() {}
 }

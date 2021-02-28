@@ -1,8 +1,8 @@
-use bevy::{
-    prelude::*,
-    diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
-};
 use crate::boat;
+use bevy::{
+    diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
+    prelude::*,
+};
 
 struct FpsText;
 struct BoatHUDText;
@@ -18,7 +18,7 @@ fn spawn_ui(
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let font = asset_server.load("fonts/Rainbow100_re_66.ttf");
+    let font = asset_server.load("fonts/Meyrin.ttf");
     let font_size = 32.;
 
     commands
@@ -36,79 +36,80 @@ fn spawn_ui(
         })
         .with_children(|parent| {
             parent
-            .spawn(NodeBundle {
-                style: Style {
-                    justify_content: JustifyContent::SpaceBetween,
-                    padding: Rect::all(Val::Px(5.0)),
+                .spawn(NodeBundle {
+                    style: Style {
+                        justify_content: JustifyContent::SpaceBetween,
+                        padding: Rect::all(Val::Px(5.0)),
+                        ..Default::default()
+                    },
+                    material: materials.add(Color::NONE.into()),
                     ..Default::default()
-                },
-                material: materials.add(Color::NONE.into()),
-                ..Default::default()
-            }).with_children(|parent| {
-                parent
-                    .spawn(TextBundle {
-                        style: Style {
-                            align_self: AlignSelf::FlexStart,
-                            ..Default::default()
-                        },
-                        text: Text {
-                            value: "♥♥♥".to_string(),
-                            font: font.clone(),
-                            style: TextStyle {
-                                font_size,
-                                color: Color::RED,
+                })
+                .with_children(|parent| {
+                    parent
+                        .spawn(TextBundle {
+                            style: Style {
+                                align_self: AlignSelf::FlexStart,
                                 ..Default::default()
                             },
-                        },
-                        ..Default::default()
-                    })
-                    .spawn(TextBundle {
-                        style: Style {
-                            align_self: AlignSelf::FlexEnd,
+                            text: Text {
+                                value: "♥♥♥".to_string(),
+                                font: font.clone(),
+                                style: TextStyle {
+                                    font_size,
+                                    color: Color::RED,
+                                    ..Default::default()
+                                },
+                            },
                             ..Default::default()
-                        },
-                        text: Text {
-                            value: "0.00speed 0.00att".to_string(),
-                            font: font.clone(),
-                            style: TextStyle {
-                                font_size,
-                                color: Color::GRAY,
+                        })
+                        .spawn(TextBundle {
+                            style: Style {
+                                align_self: AlignSelf::FlexEnd,
                                 ..Default::default()
                             },
-                        },
+                            text: Text {
+                                value: "0.00speed 0.00att".to_string(),
+                                font: font.clone(),
+                                style: TextStyle {
+                                    font_size,
+                                    color: Color::GRAY,
+                                    ..Default::default()
+                                },
+                            },
+                            ..Default::default()
+                        })
+                        .with(BoatHUDText);
+                })
+                .spawn(NodeBundle {
+                    style: Style {
+                        justify_content: JustifyContent::SpaceBetween,
+                        align_items: AlignItems::Center,
+                        border: Rect::all(Val::Px(2.0)),
                         ..Default::default()
-                    })
-                    .with(BoatHUDText);
-            })
-            .spawn(NodeBundle {
-                style: Style {
-                    justify_content: JustifyContent::SpaceBetween,
-                    align_items: AlignItems::Center,
-                    border: Rect::all(Val::Px(2.0)),
+                    },
+                    material: materials.add(Color::NONE.into()),
                     ..Default::default()
-                },
-                material: materials.add(Color::NONE.into()),
-                ..Default::default()
-            }).with_children(|parent| {
-                parent
-                    .spawn(TextBundle {
-                        style: Style {
-                            ..Default::default()
-                        },
-                        text: Text {
-                            value: "FPS: ...".to_string(),
-                            font: font.clone(),
-                            style: TextStyle {
-                                font_size,
-                                color: Color::WHITE,
+                })
+                .with_children(|parent| {
+                    parent
+                        .spawn(TextBundle {
+                            style: Style {
                                 ..Default::default()
                             },
-                        },
-                        ..Default::default()
-                    })
-                    .with(FpsText);
-            })
-            ;
+                            text: Text {
+                                value: "FPS: ...".to_string(),
+                                font: font.clone(),
+                                style: TextStyle {
+                                    font_size,
+                                    color: Color::WHITE,
+                                    ..Default::default()
+                                },
+                            },
+                            ..Default::default()
+                        })
+                        .with(FpsText);
+                });
         });
 }
 
@@ -131,4 +132,3 @@ fn text_update_system(
         }
     }
 }
-

@@ -7,8 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rand = "0.7.3"
-#bevy = "0.3.0" # make sure this is the latest version
-bevy = { git = "https://github.com/bevyengine/bevy", rev = "841755aaf23acfd55b375c37390daeb302c5b30b" }
-#bevy = { git = "https://github.com/bevyengine/bevy" }
-#bevy = { path = "../bevy" }
+rand = "0.7"
+bevy = {version="0.4.0"}
+
