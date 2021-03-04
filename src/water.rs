@@ -1,15 +1,15 @@
 use bevy::{
     prelude::*,
+    reflect::TypeUuid,
     render::{
         pipeline::{PipelineDescriptor, RenderPipeline},
         render_graph::{base, AssetRenderResourcesNode, RenderGraph},
         renderer::RenderResources,
         shader::{ShaderStage, ShaderStages},
     },
-    reflect::TypeUuid,
 };
+use std::f32::consts::PI;
 use std::ops::AddAssign;
-use std::f32::consts::{PI};
 
 struct Weather {
     wave_intensity: f32,
@@ -20,13 +20,13 @@ pub struct Water {
     pub wave_speed: f32,
 }
 impl Water {
-    pub fn height_at_point(self: &Self, point: Vec2, time: f32) -> f32{
-        let input_point = Vec3::new(point.x, 0., point.y);
-
-        let first_pass = wave_sequence(input_point, time, &self.waves);
-        first_pass.position.y
-    }
-    pub fn wave_data_at_point(self: &Self, point: Vec2, time: f32) -> WaveData{
+    // pub fn height_at_point(self: &Self, point: Vec2, time: f32) -> f32{
+    // let input_point = Vec3::new(point.x, 0., point.y);
+    //
+    // let first_pass = wave_sequence(input_point, time, &self.waves);
+    // first_pass.position.y
+    // }
+    pub fn wave_data_at_point(self: &Self, point: Vec2, time: f32) -> WaveData {
         let input_point = Vec3::new(point.x, 0., point.y);
 
         wave_sequence(input_point, time, &self.waves)
@@ -40,7 +40,6 @@ pub struct WaveData {
     pub tangent: Vec3,
 }
 
-
 #[derive(Debug)]
 pub struct WaveProperties {
     pub wavelength: f32,
@@ -49,7 +48,12 @@ pub struct WaveProperties {
 }
 impl WaveProperties {
     pub fn to_vec4(self: &Self) -> Vec4 {
-        Vec4::new(self.direction.x, self.direction.y, self.wavelength, self.steepness)
+        Vec4::new(
+            self.direction.x,
+            self.direction.y,
+            self.wavelength,
+            self.steepness,
+        )
     }
 }
 
@@ -59,9 +63,7 @@ pub struct Swimmer {
 impl Default for Swimmer {
     #[inline]
     fn default() -> Self {
-        Swimmer {
-            world_rotation: 0.,
-        }
+        Swimmer { world_rotation: 0. }
     }
 }
 
@@ -81,10 +83,8 @@ struct WaterMaterial {
 const WATER_VERTEX_SHADER: &str = include_str!("../assets/shaders/water.vert");
 const WATER_FRAGMENT_SHADER: &str = include_str!("../assets/shaders/water.frag");
 
-
 pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
-    app
-        .add_asset::<WaterMaterial>()
+    app.add_asset::<WaterMaterial>()
         .add_resource(Weather {
             wave_intensity: 1.0,
         })
@@ -106,24 +106,24 @@ fn setup(
 ) {
     let water_pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
         vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, WATER_VERTEX_SHADER)),
-        fragment: Some(shaders.add(Shader::from_glsl(ShaderStage::Fragment, WATER_FRAGMENT_SHADER))),
+        fragment: Some(shaders.add(Shader::from_glsl(
+            ShaderStage::Fragment,
+            WATER_FRAGMENT_SHADER,
+        ))),
     }));
     render_graph.add_system_node(
         "WaterMaterial",
         AssetRenderResourcesNode::<WaterMaterial>::new(true),
     );
-    render_graph.add_node_edge(
-        "WaterMaterial",
-        base::node::MAIN_PASS,
-    ).unwrap();
-
+    render_graph
+        .add_node_edge("WaterMaterial", base::node::MAIN_PASS)
+        .unwrap();
 
     let mut water = Water {
         waves: get_waves(weather.wave_intensity),
         wave_speed: 0.8,
     };
     set_waves(&mut water, weather.wave_intensity);
-
 
     commands
         .spawn(MeshBundle {
@@ -156,7 +156,6 @@ fn setup(
             wave3: water.waves[2].to_vec4(),
         }))
         .with(water);
-
 }
 
 fn gerstner_wave(
@@ -165,7 +164,7 @@ fn gerstner_wave(
     target: &mut Vec3,
     tangent: &mut Vec3,
     binormal: &mut Vec3,
-    props: &WaveProperties
+    props: &WaveProperties,
 ) -> () {
     let d = props.direction.normalize();
 
@@ -179,18 +178,18 @@ fn gerstner_wave(
     target.add_assign(Vec3::new(
         d.x * (a * f.cos()),
         a * f.sin() + a,
-        d.y * (a * f.cos())
+        d.y * (a * f.cos()),
     ));
 
     tangent.add_assign(Vec3::new(
         -d.x * d.x * (props.steepness * f.sin()),
         d.x * (props.steepness * f.cos()),
-        -d.x * d.y * (props.steepness * f.sin())
+        -d.x * d.y * (props.steepness * f.sin()),
     ));
     binormal.add_assign(Vec3::new(
         -d.x * d.y * (props.steepness * f.sin()),
         d.y * (props.steepness * f.cos()),
-        -d.y * d.y * (props.steepness * f.sin())
+        -d.y * d.y * (props.steepness * f.sin()),
     ));
 }
 
@@ -202,7 +201,14 @@ fn wave_sequence(position: Vec3, time: f32, waves: &[WaveProperties; 3]) -> Wave
     // gerstner_wave(position, time, &mut target, &mut Vec3::unit_x(), &mut Vec3::unit_z(), &waves[1]);
     // gerstner_wave(position, time, &mut target, &mut Vec3::unit_x(), &mut Vec3::unit_z(), &waves[2]);
     for wave in waves {
-        gerstner_wave(position, time, &mut target, &mut tangent, &mut binormal, wave);
+        gerstner_wave(
+            position,
+            time,
+            &mut target,
+            &mut tangent,
+            &mut binormal,
+            wave,
+        );
     }
     WaveData {
         position: target,
@@ -265,7 +271,8 @@ pub fn wave_probe_system(
             );
             transform.translation.y = wavedata.position.y + water_transform.translation.y;
 
-            transform.rotation = surface_quat(&wavedata) * Quat::from_rotation_y(swimmer.world_rotation);
+            transform.rotation =
+                surface_quat(&wavedata) * Quat::from_rotation_y(swimmer.world_rotation);
         }
     }
 }
@@ -278,17 +285,17 @@ fn update_system(
     camera_query: Query<(&Transform, &WaterCamera)>,
     water_query: Query<&Water>,
 ) {
-    if let Some(water_material) = water_material_query.iter().next()
-            .and_then(|water_handle| water_mats.get_mut(water_handle))
+    if let Some(water_material) = water_material_query
+        .iter()
+        .next()
+        .and_then(|water_handle| water_mats.get_mut(water_handle))
     {
         if let Some(water) = water_query.iter().next() {
             water_material.time = time.seconds_since_startup() as f32 * water.wave_speed;
         }
-
 
         if let Some((transform, _)) = camera_query.iter().next() {
             water_material.camera = transform.translation;
         }
     }
 }
-

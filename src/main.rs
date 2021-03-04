@@ -90,15 +90,14 @@ fn setup(
     asset_server: Res<AssetServer>,
 ) {
     // let palmtree = asset_server.load("palmera.glb");
-    let mut palmtree_transform = Transform::from_translation(Vec3::new(-5.0, -3.0, 5.0));
-    palmtree_transform.scale = Vec3::new(4., 4., 4.);
-    let palmtree = PbrBundle {
-        mesh: asset_server.load("palmera.glb#Mesh3/Primitive0"),
-        material: materials.add(Color::rgb(0.9, 0.9, 0.6).into()),
-        // material: materials.add(Color::rgb(0.8, 0.5, 0.0).into()),
-        transform: palmtree_transform,
-        ..Default::default()
-    };
+    // let mut palmtree_transform = Transform::from_translation(Vec3::new(-5.0, -3.0, 5.0));
+    // palmtree_transform.scale = Vec3::new(4., 4., 4.);
+    // let palmtree = PbrBundle {
+    // mesh: asset_server.load("palmera.glb#Mesh3/Primitive0"),
+    // material: materials.add(Color::rgb(0.9, 0.9, 0.6).into()),
+    // transform: palmtree_transform,
+    // ..Default::default()
+    // };
 
     // Setup our world
     commands
@@ -259,36 +258,28 @@ fn keyboard_input_system(
     mut camera_query: Query<(&mut Transform, &mut CameraTracker)>,
 ) {
     for mut boat in &mut boat_query.iter_mut() {
-        let mut print = false;
-
         if keyboard_input.pressed(KeyCode::W) {
             if boat.thrust < BOAT_MAX_THRUST {
                 boat.thrust =
                     (boat.thrust + INPUT_ACCEL * time.delta_seconds()).min(BOAT_MAX_THRUST);
-                print = true;
             }
         } else if boat.thrust > 0.0 {
             boat.thrust = (boat.thrust - INPUT_DECAY * time.delta_seconds()).max(0.0);
-            print = true;
         }
 
         if keyboard_input.pressed(KeyCode::A) {
             if boat.steer > -1.0 {
                 boat.steer = (boat.steer - STEER_ACCEL * time.delta_seconds()).max(-1.0);
-                print = true;
             }
         } else if boat.steer < 0.0 {
             boat.steer = (boat.steer + INPUT_DECAY * time.delta_seconds()).min(0.0);
-            print = true;
         }
         if keyboard_input.pressed(KeyCode::D) {
             if boat.steer < 1.0 {
                 boat.steer = (boat.steer + STEER_ACCEL * time.delta_seconds()).min(1.0);
-                print = true;
             }
         } else if boat.steer > 0.0 {
             boat.steer = (boat.steer - INPUT_DECAY * time.delta_seconds()).max(0.0);
-            print = true;
         }
 
         if keyboard_input.just_pressed(KeyCode::Space) {
@@ -300,10 +291,6 @@ fn keyboard_input_system(
                 camera.looking_up = LookingUp::LookingDown(camera.looking_up.value());
             }
         }
-
-        // if print {
-        // println!("boat {} / {}", boat.thrust, boat.steer);
-        // }
     }
 }
 

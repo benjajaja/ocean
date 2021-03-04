@@ -54,7 +54,7 @@ pub fn boat_physics_system(
                 time.seconds_since_startup() as f32 * water.wave_speed,
             );
 
-            if let Some((origin, radians, t)) = boat.airborne {
+            if let Some((_origin, _radians, _t)) = boat.airborne {
                 // let tt = t + time.delta_seconds();
                 // let new_y =
                 // (origin.y + boat.speed * tt * radians.sin() - 0.5 * 9.81 * tt * tt) * -1.;
