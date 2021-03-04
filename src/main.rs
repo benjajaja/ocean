@@ -15,19 +15,30 @@ mod stripe;
 mod ui;
 mod water;
 
-/// This example illustrates how to add a custom attribute to a mesh and use it in a custom shader.
 fn main() {
     let mut app = App::build();
+    let islands = vec![
+        SkyDomeIsland {
+            rotation: Quat::from_rotation_x(FRAC_PI_2),
+        },
+        SkyDomeIsland {
+            rotation: Quat::identity(),
+        },
+    ];
     app.add_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins)
         .add_asset::<SkyMaterial>()
         .add_resource(ClearColor(Color::rgb(0., 0., 0.)))
+        .add_resource(SkyDome {
+            rotation: Quat::identity(),
+            islands,
+        })
         .add_startup_system(setup.system())
         .add_startup_system(spawn_sky.system())
         .add_system(bevy::input::system::exit_on_esc_system.system())
         .add_system(keyboard_input_system.system())
-        .add_system(boat_physics_system.system())
-        .add_system(island_spawn_system.system())
+        .add_system(boat::boat_physics_system.system())
+        .add_system(skydome_system.system())
         .add_system(camera_system.system());
 
     water::add_systems(&mut app);
@@ -59,7 +70,15 @@ impl LookingUp {
 struct SkyMaterial {
     texture: Handle<Texture>,
 }
-struct SkyDome;
+pub struct SkyDomeLayer;
+
+pub struct SkyDome {
+    rotation: Quat,
+    islands: Vec<SkyDomeIsland>,
+}
+pub struct SkyDomeIsland {
+    rotation: Quat,
+}
 
 const SKY_VERTEX_SHADER: &str = include_str!("../assets/shaders/sky.vert");
 const SKY_FRAGMENT_SHADER: &str = include_str!("../assets/shaders/sky.frag");
@@ -170,8 +189,8 @@ fn spawn_sky(
     mut meshes: ResMut<Assets<Mesh>>,
     mut sky_materials: ResMut<Assets<SkyMaterial>>,
     mut render_graph: ResMut<RenderGraph>,
-    materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
+    skydome: Res<SkyDome>,
 ) {
     let sky_pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
         vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, SKY_VERTEX_SHADER)),
@@ -209,19 +228,24 @@ fn spawn_sky(
             ..Default::default()
         })
         .with(sky_material)
-        .with(SkyDome);
+        .with(SkyDomeLayer);
 
+    let island_stars: Vec<stripe::StarDef> = skydome
+        .islands
+        .iter()
+        .map(|island| stripe::StarDef {
+            quat: island.rotation,
+            size: 0.025,
+        })
+        .collect();
     commands
         .spawn(PbrBundle {
-            mesh: meshes.add(stripe::island_stars(vec![stripe::StarDef {
-                quat: Quat::from_rotation_z(PI),
-                size: 0.025,
-            }])),
+            mesh: meshes.add(stripe::island_stars(island_stars)),
             render_pipelines: render_pipelines.clone(),
             ..Default::default()
         })
         .with(sky_material_islands)
-        .with(SkyDome);
+        .with(SkyDomeLayer);
 }
 
 const INPUT_ACCEL: f32 = 10.0;
@@ -283,90 +307,6 @@ fn keyboard_input_system(
     }
 }
 
-const WATER_TRANSLATE_STEP: f32 = 20.;
-fn boat_physics_system(
-    time: Res<Time>,
-    mut boat_query: Query<(&mut PlayerBoat, &mut Transform)>,
-    mut water_transform_query: Query<(&mut water::Water, &mut Transform)>,
-    mut skydome_query: Query<(&mut SkyDome, &mut Transform)>,
-    mut commands: &mut Commands,
-) {
-    if let Some((mut boat, mut boat_transform)) = boat_query.iter_mut().next() {
-        if let Some((water, mut water_transform)) = water_transform_query.iter_mut().next() {
-            boat.world_rotation += -boat.steer * time.delta_seconds();
-            let world_rotation_quat = Quat::from_rotation_y(boat.world_rotation);
-
-            let speed = boat.thrust * 0.6;
-            // + boat.thrust * boat.nose_angle.abs();
-            let thrust_vector = Vec3::new(0., 0., speed);
-            let jump = world_rotation_quat.mul_vec3(thrust_vector);
-
-            let new_translation = boat_transform.translation + jump;
-
-            boat.speed = jump.length();
-
-            // rotate skydomes from boat jump
-            for (_, mut sky_transform) in skydome_query.iter_mut() {
-                move_skydome(&jump, &mut sky_transform, &mut commands);
-            }
-
-            // TODO: make weather_update_system
-            // water::set_waves(&mut water, weather.wave_intensity);
-            // water_material.wave1 = water.waves[0].to_vec4();
-            // water_material.wave2 = water.waves[1].to_vec4();
-            // water_material.wave3 = water.waves[2].to_vec4();
-
-            // move water plane along in steps to avoid vertex jither
-            water_transform.translation.x =
-                new_translation.x - new_translation.x % WATER_TRANSLATE_STEP;
-            water_transform.translation.z =
-                new_translation.z - new_translation.z % WATER_TRANSLATE_STEP;
-            let wavedata = water.wave_data_at_point(
-                Vec2::new(new_translation.x, new_translation.z),
-                time.seconds_since_startup() as f32 * water.wave_speed,
-            );
-
-            if let Some((origin, radians, t)) = boat.airborne {
-                let tt = t + time.delta_seconds();
-                let new_y =
-                    (origin.y + boat.speed * tt * radians.sin() - 0.5 * 9.81 * tt * tt) * -1.;
-                boat.airborne = None;
-                println!(
-                    "airborne ended {}/{}",
-                    wavedata.position.y, water_transform.translation.y
-                );
-            // water_transform.translation.y = new_y;
-            // if new_y > boat_transform.translation.y && wavedata.position.y >= -water_transform.translation.y {
-            // boat.airborne = None;
-            // println!("airborne ended {}/{}", wavedata.position.y, water_transform.translation.y);
-            // } else {
-            // boat.airborne = Some((origin, radians, tt));
-            } else {
-                let normal_quat = water::surface_quat(&wavedata);
-                let world_rotation = normal_quat * world_rotation_quat;
-
-                let forward_vec = world_rotation.mul_vec3(Vec3::unit_z());
-                let cosine = normal_quat.dot(boat.last_normal);
-                boat.nose_angle = cosine;
-                boat.last_normal = normal_quat;
-
-                // "anchor" water plane at boat
-                water_transform.translation.y = -wavedata.position.y;
-
-                if forward_vec.y > 0. && boat.speed > 1.0 && false {
-                    // boat.nose_angle > PI / 8. {
-                    // boat.airborne = Some((forward_vec, boat.nose_angle, 0.));
-                    println!("airborne now");
-                    boat_transform.rotation = boat.last_normal * world_rotation_quat;
-                } else {
-                    boat_transform.rotation = normal_quat * world_rotation_quat;
-                }
-            }
-            boat_transform.translation = new_translation;
-        }
-    }
-}
-
 const CAMERA_ROTATION_FACTOR: f32 = 10.0;
 fn camera_system(
     time: Res<Time>,
@@ -416,16 +356,19 @@ fn camera_system(
     }
 }
 
-fn move_skydome(jump: &Vec3, sky_transform: &mut Transform, commands: &mut Commands) {
-    let right_angle = Quat::from_rotation_y(FRAC_PI_2);
-    let rotation_axis = right_angle.mul_vec3(*jump);
-    let rotation = Quat::from_axis_angle(rotation_axis, -jump.length() * 0.001);
-    sky_transform.rotation = rotation.mul_quat(sky_transform.rotation).normalize();
-}
-
-fn island_spawn_system(
-    mut skydome_query: Query<(&SkyDome, &Transform)>,
-    mut commands: &mut Commands,
+fn skydome_system(
+    skydome: Res<SkyDome>,
+    mut skydome_query: Query<(&SkyDomeLayer, &mut Transform)>,
 ) {
-    if let Some((_, sky_transform)) = skydome_query.iter_mut().next() {}
+    for (_, mut sky_transform) in skydome_query.iter_mut() {
+        sky_transform.rotation = skydome.rotation;
+    }
+
+    let sky_vec = skydome.rotation * Vec3::unit_z();
+    // let sky_inverse = skydome.rotation.conjugate();
+    for island in skydome.islands.iter() {
+        let island_vec = island.rotation * Vec3::unit_z();
+        let angle = island_vec.dot(sky_vec);
+        println!("angle: {:?}", angle);
+    }
 }
