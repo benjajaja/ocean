@@ -508,6 +508,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_prototype_debug_lines"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "902bfba8ed14c2c71e77c6ab1be851e488941f354a6b1acb6faf5b4e86fb661d"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "bevy_reflect"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2555,6 +2564,7 @@ name = "ocean"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_prototype_debug_lines",
  "rand",
 ]
 

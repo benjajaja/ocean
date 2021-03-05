@@ -1,15 +1,11 @@
-use bevy::{
-    prelude::*,
-    input::mouse::{MouseMotion},
-};
 use crate::boat;
 use crate::ui;
+use bevy::{input::mouse::MouseMotion, prelude::*};
 
 pub struct CameraTracker {
     pub bobber: Transform,
     pub free_look: Option<Vec2>,
 }
-
 
 const INPUT_ACCEL: f32 = 10.0;
 const INPUT_DECAY: f32 = 10.0;
@@ -23,35 +19,28 @@ pub fn keyboard_input_system(
     mut crosshair_query: Query<&mut Draw, With<ui::Crosshair>>,
 ) {
     for mut boat in &mut boat_query.iter_mut() {
-        let mut print = false;
-
         if keyboard_input.pressed(KeyCode::W) {
             if boat.thrust < BOAT_MAX_THRUST {
-                boat.thrust = (boat.thrust + INPUT_ACCEL * time.delta_seconds()).min(BOAT_MAX_THRUST);
-                print = true;
+                boat.thrust =
+                    (boat.thrust + INPUT_ACCEL * time.delta_seconds()).min(BOAT_MAX_THRUST);
             }
         } else if boat.thrust > 0.0 {
             boat.thrust = (boat.thrust - INPUT_DECAY * time.delta_seconds()).max(0.0);
-            print = true;
         }
 
         if keyboard_input.pressed(KeyCode::A) {
             if boat.steer > -1.0 {
                 boat.steer = (boat.steer - STEER_ACCEL * time.delta_seconds()).max(-1.0);
-                print = true;
             }
         } else if boat.steer < 0.0 {
             boat.steer = (boat.steer + INPUT_DECAY * time.delta_seconds()).min(0.0);
-            print = true;
         }
         if keyboard_input.pressed(KeyCode::D) {
             if boat.steer < 1.0 {
                 boat.steer = (boat.steer + STEER_ACCEL * time.delta_seconds()).min(1.0);
-                print = true;
             }
         } else if boat.steer > 0.0 {
             boat.steer = (boat.steer - INPUT_DECAY * time.delta_seconds()).max(0.0);
-            print = true;
         }
 
         if keyboard_input.just_pressed(KeyCode::Space) {
@@ -70,12 +59,7 @@ pub fn keyboard_input_system(
                 }
             }
         }
-
-        // if print {
-            // println!("boat {} / {}", boat.thrust, boat.steer);
-        // }
     }
-
 }
 
 /// Hold readers for events
@@ -94,7 +78,9 @@ pub fn mouse_input_system(
 ) {
     if let Some((_, mut camera)) = camera_query.iter_mut().next() {
         match camera.free_look {
-            None => { return; }
+            None => {
+                return;
+            }
             Some(xy) => {
                 for ev in state.reader_motion.iter(&ev_motion) {
                     println!("mouse: {}", ev.delta);
@@ -104,4 +90,3 @@ pub fn mouse_input_system(
         }
     }
 }
-

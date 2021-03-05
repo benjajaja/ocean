@@ -8,6 +8,7 @@ use bevy::{
         shader::{ShaderStage, ShaderStages},
     },
 };
+use bevy_prototype_debug_lines::*;
 use std::f32::consts::{FRAC_PI_2, PI};
 mod boat;
 use boat::PlayerBoat;
@@ -18,8 +19,14 @@ mod water;
 fn main() {
     let mut app = App::build();
     let islands = vec![
+        // SkyDomeIsland {
+        // rotation: Quat::from_rotation_x(FRAC_PI_2 * 1.5),
+        // },
+        // SkyDomeIsland {
+        // rotation: Quat::from_rotation_x(FRAC_PI_2),
+        // },
         SkyDomeIsland {
-            rotation: Quat::from_rotation_x(FRAC_PI_2),
+            rotation: Quat::from_rotation_x(FRAC_PI_2 * 0.5),
         },
         SkyDomeIsland {
             rotation: Quat::identity(),
@@ -27,6 +34,7 @@ fn main() {
     ];
     app.add_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins)
+        .add_plugin(DebugLinesPlugin)
         .add_asset::<SkyMaterial>()
         .add_resource(ClearColor(Color::rgb(0., 0., 0.)))
         .add_resource(SkyDome {
@@ -346,16 +354,38 @@ fn camera_system(
 fn skydome_system(
     skydome: Res<SkyDome>,
     mut skydome_query: Query<(&SkyDomeLayer, &mut Transform)>,
+    mut lines: ResMut<DebugLines>,
+    boat_query: Query<(&PlayerBoat, &Transform)>,
 ) {
+    let boat_transform = boat_query.iter().next().map(|t| t.1);
     for (_, mut sky_transform) in skydome_query.iter_mut() {
         sky_transform.rotation = skydome.rotation;
     }
 
+    if let Some(boat_transform) = boat_transform {
+        lines.line_colored(
+            0,
+            boat_transform.translation,
+            boat_transform.translation + (Vec3::new(0.0, 100.0, 0.0)),
+            0.01,
+            Color::GREEN,
+        );
+    }
     let sky_vec = skydome.rotation * Vec3::unit_z();
     // let sky_inverse = skydome.rotation.conjugate();
-    for island in skydome.islands.iter() {
+    for (i, island) in skydome.islands.iter().enumerate() {
         let island_vec = island.rotation * Vec3::unit_z();
         let angle = island_vec.dot(sky_vec);
         println!("angle: {:?}", angle);
+        if let Some(boat_transform) = boat_transform {
+            lines.line_colored(
+                1 + (i as u32),
+                boat_transform.translation,
+                boat_transform.translation
+                    + (island.rotation * skydome.rotation * Vec3::new(0.0, 1000.0, 0.0)),
+                0.1,
+                Color::RED,
+            );
+        }
     }
 }
