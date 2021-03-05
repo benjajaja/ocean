@@ -1,10 +1,10 @@
 use crate::boat;
-use crate::ui;
+use crate::camera::{CameraTracker, LookingUp};
 use bevy::{input::mouse::MouseMotion, prelude::*};
 
-pub struct CameraTracker {
-    pub bobber: Transform,
-    pub free_look: Option<Vec2>,
+#[derive(Default)]
+pub struct State {
+    pub mouse_motion_event_reader: EventReader<MouseMotion>,
 }
 
 const INPUT_ACCEL: f32 = 10.0;
@@ -16,7 +16,6 @@ pub fn keyboard_input_system(
     keyboard_input: Res<Input<KeyCode>>,
     mut boat_query: Query<&mut boat::PlayerBoat>,
     mut camera_query: Query<(&mut Transform, &mut CameraTracker)>,
-    mut crosshair_query: Query<&mut Draw, With<ui::Crosshair>>,
 ) {
     for mut boat in &mut boat_query.iter_mut() {
         if keyboard_input.pressed(KeyCode::W) {
@@ -44,49 +43,29 @@ pub fn keyboard_input_system(
         }
 
         if keyboard_input.just_pressed(KeyCode::Space) {
-            if let Some((transform, mut camera)) = camera_query.iter_mut().next() {
-                camera.free_look = Some(Vec2::new(0., boat.world_rotation));
-
-                for mut draw in crosshair_query.iter_mut() {
-                    draw.is_visible = true;
-                }
+            if let Some((_transform, mut camera)) = camera_query.iter_mut().next() {
+                camera.looking_up = LookingUp::LookingUp(camera.looking_up.value());
             }
         } else if keyboard_input.just_released(KeyCode::Space) {
             if let Some((_transform, mut camera)) = camera_query.iter_mut().next() {
-                camera.free_look = None;
-                for mut draw in crosshair_query.iter_mut() {
-                    draw.is_visible = false;
-                }
+                camera.looking_up = LookingUp::LookingDown(camera.looking_up.value());
             }
         }
     }
 }
 
-/// Hold readers for events
-#[derive(Default)]
-pub struct InputState {
-    pub reader_motion: EventReader<MouseMotion>,
-}
-
-const MOUSE_LOOK_FACTOR: f32 = 2.0;
 pub fn mouse_input_system(
-    time: Res<Time>,
-    windows: Res<Windows>,
-    mut state: Local<InputState>,
-    ev_motion: Res<Events<MouseMotion>>,
-    mut camera_query: Query<(&mut Transform, &mut CameraTracker)>,
+    mut state: Local<State>,
+    mouse_motion_events: Res<Events<MouseMotion>>,
+    mut camera_query: Query<&mut CameraTracker>,
 ) {
-    if let Some((_, mut camera)) = camera_query.iter_mut().next() {
-        match camera.free_look {
-            None => {
-                return;
-            }
-            Some(xy) => {
-                for ev in state.reader_motion.iter(&ev_motion) {
-                    println!("mouse: {}", ev.delta);
-                    camera.free_look = Some();
-                }
-            }
+    if let Some(mut camera) = camera_query.iter_mut().next() {
+        for event in state.mouse_motion_event_reader.iter(&mouse_motion_events) {
+            println!("{:?}", event);
+            camera.input_rotation = (camera.input_rotation
+                * Quat::from_axis_angle(Vec3::unit_y(), -event.delta.x * 0.001)
+                * Quat::from_axis_angle(Vec3::unit_x(), event.delta.y * 0.001))
+            .normalize();
         }
     }
 }

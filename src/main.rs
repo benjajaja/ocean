@@ -12,6 +12,9 @@ use bevy_prototype_debug_lines::*;
 use std::f32::consts::{FRAC_PI_2, PI};
 mod boat;
 use boat::PlayerBoat;
+mod camera;
+mod input;
+use camera::CameraTracker;
 mod stripe;
 mod ui;
 mod water;
@@ -44,33 +47,15 @@ fn main() {
         .add_startup_system(setup.system())
         .add_startup_system(spawn_sky.system())
         .add_system(bevy::input::system::exit_on_esc_system.system())
-        .add_system(keyboard_input_system.system())
+        .add_system(input::keyboard_input_system.system())
+        .add_system(input::mouse_input_system.system())
         .add_system(boat::boat_physics_system.system())
         .add_system(skydome_system.system())
-        .add_system(camera_system.system());
+        .add_system(camera::camera_system.system());
 
     water::add_systems(&mut app);
     ui::add_systems(&mut app);
     app.run();
-}
-
-struct CameraTracker {
-    bobber: Transform,
-    looking_up: LookingUp,
-}
-enum LookingUp {
-    None,
-    LookingUp(f32),
-    LookingDown(f32),
-}
-impl LookingUp {
-    pub fn value(&self) -> f32 {
-        match *self {
-            LookingUp::None => 0.,
-            LookingUp::LookingUp(a) => a,
-            LookingUp::LookingDown(a) => a,
-        }
-    }
 }
 
 #[derive(RenderResources, Default, TypeUuid)]
@@ -184,7 +169,8 @@ fn setup(
         })
         .with(CameraTracker {
             bobber: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
-            looking_up: LookingUp::None,
+            looking_up: camera::LookingUp::None,
+            input_rotation: Quat::identity(),
         })
         .with(water::WaterCamera);
 }
@@ -255,102 +241,6 @@ fn spawn_sky(
         .with(SkyDomeLayer);
 }
 
-const INPUT_ACCEL: f32 = 10.0;
-const INPUT_DECAY: f32 = 10.0;
-const STEER_ACCEL: f32 = 20.0;
-const BOAT_MAX_THRUST: f32 = 2.;
-fn keyboard_input_system(
-    time: Res<Time>,
-    keyboard_input: Res<Input<KeyCode>>,
-    mut boat_query: Query<&mut PlayerBoat>,
-    mut camera_query: Query<(&mut Transform, &mut CameraTracker)>,
-) {
-    for mut boat in &mut boat_query.iter_mut() {
-        if keyboard_input.pressed(KeyCode::W) {
-            if boat.thrust < BOAT_MAX_THRUST {
-                boat.thrust =
-                    (boat.thrust + INPUT_ACCEL * time.delta_seconds()).min(BOAT_MAX_THRUST);
-            }
-        } else if boat.thrust > 0.0 {
-            boat.thrust = (boat.thrust - INPUT_DECAY * time.delta_seconds()).max(0.0);
-        }
-
-        if keyboard_input.pressed(KeyCode::A) {
-            if boat.steer > -1.0 {
-                boat.steer = (boat.steer - STEER_ACCEL * time.delta_seconds()).max(-1.0);
-            }
-        } else if boat.steer < 0.0 {
-            boat.steer = (boat.steer + INPUT_DECAY * time.delta_seconds()).min(0.0);
-        }
-        if keyboard_input.pressed(KeyCode::D) {
-            if boat.steer < 1.0 {
-                boat.steer = (boat.steer + STEER_ACCEL * time.delta_seconds()).min(1.0);
-            }
-        } else if boat.steer > 0.0 {
-            boat.steer = (boat.steer - INPUT_DECAY * time.delta_seconds()).max(0.0);
-        }
-
-        if keyboard_input.just_pressed(KeyCode::Space) {
-            if let Some((_transform, mut camera)) = camera_query.iter_mut().next() {
-                camera.looking_up = LookingUp::LookingUp(camera.looking_up.value());
-            }
-        } else if keyboard_input.just_released(KeyCode::Space) {
-            if let Some((_transform, mut camera)) = camera_query.iter_mut().next() {
-                camera.looking_up = LookingUp::LookingDown(camera.looking_up.value());
-            }
-        }
-    }
-}
-
-const CAMERA_ROTATION_FACTOR: f32 = 10.0;
-fn camera_system(
-    time: Res<Time>,
-    boat_query: Query<(&PlayerBoat, &Transform)>,
-    mut camera_query: Query<(&mut Transform, &mut CameraTracker)>,
-) {
-    if let Some((mut transform, mut camera)) = camera_query.iter_mut().next() {
-        if let Some((boat, boat_transform)) = boat_query.iter().next() {
-            let boat_translation = boat_transform.translation;
-
-            camera.bobber.translation.x = boat_translation.x;
-            camera.bobber.translation.z = boat_translation.z;
-
-            camera.bobber.rotation = camera.bobber.rotation.slerp(
-                Quat::from_axis_angle(Vec3::unit_y(), boat.world_rotation).normalize(),
-                time.delta_seconds() * CAMERA_ROTATION_FACTOR,
-            );
-
-            transform.translation = camera.bobber.translation
-                + camera.bobber.rotation.mul_vec3(Vec3::new(0.0, 5.0, -15.0))
-                + Vec3::new(0.0, -boat.thrust * 1.5, 0.0);
-
-            let mut looking_at = camera.bobber.translation;
-            match camera.looking_up {
-                LookingUp::LookingUp(mut look) => {
-                    look += look + time.delta_seconds() * 0.5;
-                    look = look.min(1.);
-                    looking_at += Vec3::new(0., 100. * look, 0.);
-                    camera.looking_up = LookingUp::LookingUp(look);
-                }
-                LookingUp::LookingDown(mut look) => {
-                    look -= time.delta_seconds() * 2.5;
-                    look = look.max(0.);
-                    looking_at += Vec3::new(0., 100. * look, 0.);
-
-                    if look > 0. {
-                        camera.looking_up = LookingUp::LookingDown(look);
-                    } else {
-                        camera.looking_up = LookingUp::None;
-                    }
-                }
-                LookingUp::None => {}
-            }
-
-            transform.rotation = transform.looking_at(looking_at, Vec3::unit_y()).rotation;
-        }
-    }
-}
-
 fn skydome_system(
     skydome: Res<SkyDome>,
     mut skydome_query: Query<(&SkyDomeLayer, &mut Transform)>,
@@ -376,7 +266,7 @@ fn skydome_system(
     for (i, island) in skydome.islands.iter().enumerate() {
         let island_vec = island.rotation * Vec3::unit_z();
         let angle = island_vec.dot(sky_vec);
-        println!("angle: {:?}", angle);
+        // println!("angle: {:?}", angle);
         if let Some(boat_transform) = boat_transform {
             lines.line_colored(
                 1 + (i as u32),
