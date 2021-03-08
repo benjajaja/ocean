@@ -61,7 +61,6 @@ pub fn mouse_input_system(
 ) {
     if let Some(mut camera) = camera_query.iter_mut().next() {
         for event in state.mouse_motion_event_reader.iter(&mouse_motion_events) {
-            println!("{:?}", event);
             camera.input_rotation = (camera.input_rotation
                 * Quat::from_axis_angle(Vec3::unit_y(), -event.delta.x * 0.001)
                 * Quat::from_axis_angle(Vec3::unit_x(), event.delta.y * 0.001))

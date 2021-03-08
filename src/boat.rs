@@ -1,4 +1,4 @@
-use crate::SkyDome;
+use crate::sky::SkyDome;
 
 use super::water;
 use bevy::prelude::*;
@@ -29,14 +29,14 @@ pub fn boat_physics_system(
             let speed = boat.thrust * 1.6;
             // + boat.thrust * boat.nose_angle.abs();
             let thrust_vector = Vec3::new(0., 0., speed);
-            let jump = world_rotation_quat.mul_vec3(thrust_vector);
+            let jump = world_rotation_quat * thrust_vector;
 
             let new_translation = boat_transform.translation + jump;
 
             boat.speed = jump.length();
 
             // rotate skydomes from boat jump
-            skydome.rotation = (move_skydome(&jump) * skydome.rotation).normalize();
+            skydome.rotation = (move_skydome(jump) * skydome.rotation).normalize();
 
             // TODO: make weather_update_system
             // water::set_waves(&mut water, weather.wave_intensity);
@@ -73,7 +73,7 @@ pub fn boat_physics_system(
                 let normal_quat = water::surface_quat(&wavedata);
                 let world_rotation = normal_quat * world_rotation_quat;
 
-                let forward_vec = world_rotation.mul_vec3(Vec3::unit_z());
+                let forward_vec = world_rotation * Vec3::unit_z();
                 let cosine = normal_quat.dot(boat.last_normal);
                 boat.nose_angle = cosine;
                 boat.last_normal = normal_quat;
@@ -95,9 +95,9 @@ pub fn boat_physics_system(
     }
 }
 
-fn move_skydome(jump: &Vec3) -> Quat {
+fn move_skydome(jump: Vec3) -> Quat {
     let right_angle = Quat::from_rotation_y(FRAC_PI_2);
-    let rotation_axis = right_angle.mul_vec3(*jump);
+    let rotation_axis = right_angle * jump;
     let rotation = Quat::from_axis_angle(rotation_axis, -jump.length() * 0.001);
     rotation
 }
