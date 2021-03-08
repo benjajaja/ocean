@@ -58,13 +58,24 @@ pub fn spawn_sky(
     mut render_graph: ResMut<RenderGraph>,
     asset_server: Res<AssetServer>,
 ) {
-    let sky_pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
+    let mut descriptor = PipelineDescriptor::default_config(ShaderStages {
         vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, SKY_VERTEX_SHADER)),
         fragment: Some(shaders.add(Shader::from_glsl(
             ShaderStage::Fragment,
             SKY_FRAGMENT_SHADER,
         ))),
-    }));
+    });
+    descriptor.depth_stencil_state =
+        descriptor
+            .depth_stencil_state
+            .map(|mut depth_stencil_state| {
+                depth_stencil_state.depth_compare =
+                    bevy::render::pipeline::CompareFunction::LessEqual;
+                depth_stencil_state.depth_write_enabled = false;
+                depth_stencil_state
+            });
+
+    let sky_pipeline_handle = pipelines.add(descriptor);
     render_graph.add_system_node(
         "SkyMaterial",
         AssetRenderResourcesNode::<SkyMaterial>::new(true),
@@ -91,18 +102,14 @@ pub fn spawn_sky(
         .spawn(PbrBundle {
             mesh: meshes.add(stripe::bg_stars()),
             render_pipelines: render_pipelines.clone(),
+            transform: Transform::from_scale(Vec3::splat(100.0)),
             ..Default::default()
         })
         .with(sky_material)
         .with(SkyDomeLayer);
 
     let islands = vec![
-        // SkyDomeIsland {
-        // rotation: Quat::from_rotation_x(FRAC_PI_2 * 1.5),
-        // },
-        // SkyDomeIsland {
-        // rotation: Quat::from_rotation_x(FRAC_PI_2),
-        // },
+        SkyDomeIsland::new(Quat::from_rotation_x(FRAC_PI_2)),
         SkyDomeIsland::new(Quat::from_rotation_x(FRAC_PI_2 * 0.5)),
         SkyDomeIsland::new(
             Quat::from_rotation_x(FRAC_PI_2 * 0.1) * Quat::from_rotation_y(FRAC_PI_2 * 0.2),
@@ -120,6 +127,7 @@ pub fn spawn_sky(
         .spawn(PbrBundle {
             mesh: meshes.add(stripe::island_stars(island_stars)),
             render_pipelines: render_pipelines.clone(),
+            transform: Transform::from_scale(Vec3::splat(100.0)),
             ..Default::default()
         })
         .with(sky_material_islands)
@@ -141,9 +149,6 @@ pub fn skydome_system(
     commands: &mut Commands,
 ) {
     let boat_transform = boat_query.iter().next().map(|t| t.1);
-    for (_, mut sky_transform) in skydome_query.iter_mut() {
-        sky_transform.rotation = skydome.rotation;
-    }
 
     if let Some(boat_transform) = boat_transform {
         lines.line_colored(
@@ -153,6 +158,10 @@ pub fn skydome_system(
             0.01,
             Color::GREEN,
         );
+        for (_, mut sky_transform) in skydome_query.iter_mut() {
+            sky_transform.rotation = skydome.rotation;
+            sky_transform.translation = boat_transform.translation;
+        }
     }
     let sky_vec = skydome.rotation.conjugate() * Vec3::unit_z();
     // let sky_inverse = skydome.rotation.conjugate();
@@ -185,7 +194,7 @@ pub fn skydome_system(
                 1 + (i as u32),
                 boat_transform.translation,
                 boat_transform.translation
-                    + (skydome.rotation * island.rotation * Vec3::new(0.0, 10000.0, 0.0)),
+                    + (skydome.rotation * island.rotation * Vec3::new(0.0, 100.0, 0.0)),
                 0.1,
                 Color::RED,
             );

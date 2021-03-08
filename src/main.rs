@@ -123,7 +123,6 @@ fn setup(
                 .looking_at(Vec3::new(0.0, 5.0, 1000.0), Vec3::unit_y()),
             ..Default::default()
         })
-        // .with(sky::SkyCamera)
         .with(CameraTracker {
             bobber: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             looking_up: camera::LookingUp::None,
