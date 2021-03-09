@@ -9,7 +9,7 @@ pub struct State {
 
 const INPUT_ACCEL: f32 = 10.0;
 const INPUT_DECAY: f32 = 10.0;
-const STEER_ACCEL: f32 = 20.0;
+const STEER_ACCEL: f32 = 10.0;
 const BOAT_MAX_THRUST: f32 = 2.;
 pub fn keyboard_input_system(
     time: Res<Time>,

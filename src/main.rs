@@ -156,23 +156,39 @@ fn setup(
 
 #[derive(Debug)]
 pub enum NavigationEvent {
-    Approach(Island),
+    Approach(Island, Vec3),
     Leave,
 }
+
+pub struct WorldIsland;
 
 fn island_enter_leave(
     events: Res<Events<NavigationEvent>>,
     mut state: ResMut<InGameState>,
     mut event_reader: Local<EventReader<NavigationEvent>>,
     mut skydome_query: Query<(&sky::SkyDomeLayer, &mut Visible)>,
+    commands: &mut Commands,
+    asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     for ev in event_reader.iter(&events) {
         match ev {
-            NavigationEvent::Approach(island) => match state.time {
+            NavigationEvent::Approach(island, translation) => match state.time {
                 DayTime::Night => {
                     println!("sunrise");
                     state.time = DayTime::Day;
                     state.local_island = *island;
+
+                    let mut palmtree_transform = Transform::from_translation(*translation);
+
+                    palmtree_transform.scale = Vec3::new(4., 4., 4.);
+                    let palmtree = PbrBundle {
+                        mesh: asset_server.load("palmera.glb#Mesh3/Primitive0"),
+                        material: materials.add(Color::rgb(0.9, 0.9, 0.6).into()),
+                        transform: palmtree_transform,
+                        ..Default::default()
+                    };
+                    commands.spawn(palmtree).with(WorldIsland);
                 }
                 DayTime::Day => {
                     panic!("approach at day");
@@ -194,14 +210,3 @@ fn island_enter_leave(
         }
     }
 }
-
-// let mut palmtree_transform = Transform::from_translation(Vec3::new(-5.0, -3.0, 5.0));
-//
-// palmtree_transform.scale = Vec3::new(4., 4., 4.);
-// let palmtree = PbrBundle {
-// mesh: asset_server.load("palmera.glb#Mesh3/Primitive0"),
-// material: materials.add(Color::rgb(0.9, 0.9, 0.6).into()),
-// transform: palmtree_transform,
-// ..Default::default()
-// };
-// commands.spawn(palmtree).with(WorldIsland);

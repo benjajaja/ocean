@@ -131,7 +131,7 @@ fn setup(
             render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::new(
                 water_pipeline_handle,
             )]),
-            transform: Transform::from_scale(Vec3::new(200.0, 200.0, 200.0)),
+            transform: Transform::from_scale(Vec3::new(500.0, 500.0, 500.0)),
             ..Default::default()
         })
         .with_children(|parent| {

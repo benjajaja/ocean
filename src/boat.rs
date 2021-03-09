@@ -98,6 +98,6 @@ pub fn boat_physics_system(
 fn move_skydome(jump: Vec3) -> Quat {
     let right_angle = Quat::from_rotation_y(FRAC_PI_2);
     let rotation_axis = right_angle * jump;
-    let rotation = Quat::from_axis_angle(rotation_axis, -jump.length() * 0.001);
+    let rotation = Quat::from_axis_angle(rotation_axis, -jump.length() * 0.0001);
     rotation
 }
