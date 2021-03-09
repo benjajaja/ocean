@@ -11,23 +11,58 @@ mod stripe;
 mod ui;
 mod water;
 
+#[derive(Debug, Clone)]
+enum AppState {
+    Menu,
+    InGame,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum DayTime {
+    Day,
+    Night,
+}
+
+#[derive(Debug)]
+pub struct InGameState {
+    time: DayTime,
+    local_island: Island,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Island {
+    Home,
+    IslandA,
+    IslandB,
+}
+
 fn main() {
+    static STATE: &str = "state";
+
     let mut app = App::build();
     app.add_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins)
-        .add_plugin(DebugLinesPlugin)
-        .add_asset::<sky::SkyMaterial>()
-        .add_resource(ClearColor(Color::rgb(0., 0., 0.)))
-        .add_resource(sky::SkyDome::new())
-        .add_startup_system(setup.system())
-        .add_startup_system(sky::spawn_sky.system())
-        .add_system(bevy::input::system::exit_on_esc_system.system())
+        .add_plugin(DebugLinesPlugin);
+
+    app.add_resource(State::new(AppState::InGame))
+        .add_resource(Events::<NavigationEvent>::default())
+        .add_resource(InGameState {
+            time: DayTime::Night,
+            local_island: Island::Home,
+        });
+
+    app.add_startup_system(setup.system());
+
+    app.add_stage_before(stage::UPDATE, STATE, StateStage::<AppState>::default());
+
+    app.add_system(bevy::input::system::exit_on_esc_system.system())
         .add_system(input::keyboard_input_system.system())
         .add_system(input::mouse_input_system.system())
         .add_system(boat::boat_physics_system.system())
-        .add_system(sky::skydome_system.system())
+        .add_system(island_enter_leave.system())
         .add_system(camera::camera_system.system());
 
+    sky::add_systems(&mut app);
     water::add_systems(&mut app);
     ui::add_systems(&mut app);
     app.run();
@@ -41,15 +76,9 @@ fn setup(
 ) {
     // Setup our world
     commands
-        // .spawn_scene(asset_server.load("palmera.glb"))
         .spawn(PbrBundle {
-            // mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
             mesh: asset_server.load("flota1.glb#Mesh0/Primitive0"),
             material: materials.add(Color::rgb(0.0, 0.9, 0.6).into()),
-            // material: materials.add(StandardMaterial {
-            // shaded: false,
-            // ..Default::default()
-            // }),
             transform: Transform::from_translation(Vec3::new(5.0, 0.0, 0.0)),
             ..Default::default()
         })
@@ -61,14 +90,7 @@ fn setup(
     commands
         .spawn(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-            // mesh: asset_server.load("helios/scene.gltf#Mesh0/Primitive0"),
             material: materials.add(Color::rgb(0.5, 0.9, 0.6).into()),
-            // material: materials.add(Color::rgb(0.0, 0.9, 0.6).into()),
-            // material: materials.add(StandardMaterial {
-            // shaded: false,
-            // ..Default::default()
-            // }),
-            // transform: Transform::from_rotation(Quat::from_rotation_x(-PI / 2.)),
             transform: Transform::from_translation(Vec3::new(5.0, 0.0, 20.0)),
             ..Default::default()
         })
@@ -131,3 +153,55 @@ fn setup(
         .with(water::WaterCamera);
     println!("SkyCamera added.");
 }
+
+#[derive(Debug)]
+pub enum NavigationEvent {
+    Approach(Island),
+    Leave,
+}
+
+fn island_enter_leave(
+    events: Res<Events<NavigationEvent>>,
+    mut state: ResMut<InGameState>,
+    mut event_reader: Local<EventReader<NavigationEvent>>,
+    mut skydome_query: Query<(&sky::SkyDomeLayer, &mut Visible)>,
+) {
+    for ev in event_reader.iter(&events) {
+        match ev {
+            NavigationEvent::Approach(island) => match state.time {
+                DayTime::Night => {
+                    println!("sunrise");
+                    state.time = DayTime::Day;
+                    state.local_island = *island;
+                }
+                DayTime::Day => {
+                    panic!("approach at day");
+                }
+            },
+            NavigationEvent::Leave => match state.time {
+                DayTime::Day => {
+                    println!("sunset");
+                    state.time = DayTime::Night;
+
+                    for (layer, mut visible) in skydome_query.iter_mut() {
+                        visible.is_visible = layer.daytime == DayTime::Night;
+                    }
+                }
+                DayTime::Night => {
+                    panic!("leave at night");
+                }
+            },
+        }
+    }
+}
+
+// let mut palmtree_transform = Transform::from_translation(Vec3::new(-5.0, -3.0, 5.0));
+//
+// palmtree_transform.scale = Vec3::new(4., 4., 4.);
+// let palmtree = PbrBundle {
+// mesh: asset_server.load("palmera.glb#Mesh3/Primitive0"),
+// material: materials.add(Color::rgb(0.9, 0.9, 0.6).into()),
+// transform: palmtree_transform,
+// ..Default::default()
+// };
+// commands.spawn(palmtree).with(WorldIsland);

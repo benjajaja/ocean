@@ -9,11 +9,11 @@ layout(set = 0, binding = 0) uniform Camera {
 layout(set = 1, binding = 0) uniform Transform {
     mat4 Model;
 };
-layout(set = 2, binding = 1) uniform texture2D SkyMaterial_texture;
-layout(set = 2, binding = 2) uniform sampler SkyMaterial_texture_sampler;
+layout(set = 2, binding = 1) uniform texture2D SkySpriteMaterial_texture;
+layout(set = 2, binding = 2) uniform sampler SkySpriteMaterial_texture_sampler;
 
 
 void main() {
-    o_Target = texture(sampler2D(SkyMaterial_texture, SkyMaterial_texture_sampler), v_Uv);
+    o_Target = texture(sampler2D(SkySpriteMaterial_texture, SkySpriteMaterial_texture_sampler), v_Uv);
 }
 
