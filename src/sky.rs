@@ -233,17 +233,16 @@ pub fn skydome_system(
             let boat_transform = boat_query.iter().next().map(|t| t.1);
 
             if let Some(boat_transform) = boat_transform {
-                // lines.line_colored(
-                // 0,
-                // boat_transform.translation,
-                // boat_transform.translation + (Vec3::new(0.0, 100.0, 0.0)),
-                // 0.01,
-                // Color::GREEN,
-                // );
+                lines.line_colored(
+                    boat_transform.translation,
+                    boat_transform.translation + (Vec3::new(0.0, 100.0, 0.0)),
+                    0.01,
+                    Color::GREEN,
+                );
 
                 let sky_vec = Vec3::unit_y();
                 // let sky_inverse = skydome.rotation.conjugate();
-                for (i, island) in island_query.iter().enumerate() {
+                for island in island_query.iter() {
                     let island_vec = (skydome.rotation * island.rotation) * Vec3::unit_y();
                     let angle = island_vec.dot(sky_vec);
                     println!("angle {}", angle);
@@ -260,14 +259,13 @@ pub fn skydome_system(
                     }
 
                     // debug lines
-                    // lines.line_colored(
-                    // 1 + (i as u32),
-                    // boat_transform.translation,
-                    // boat_transform.translation
-                    // + ((skydome.rotation * island.rotation) * Vec3::new(0.0, 1000.0, 0.0)),
-                    // 0.1,
-                    // Color::RED,
-                    // );
+                    lines.line_colored(
+                        boat_transform.translation,
+                        boat_transform.translation
+                            + ((skydome.rotation * island.rotation) * Vec3::new(0.0, 1000.0, 0.0)),
+                        0.1,
+                        Color::RED,
+                    );
                 }
             }
         }
