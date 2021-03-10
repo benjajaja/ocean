@@ -156,7 +156,8 @@ fn setup(
 
 #[derive(Debug)]
 pub enum NavigationEvent {
-    Approach(Island, Vec3),
+    Enter(Island, Vec3),
+    Approach(f32),
     Leave,
 }
 
@@ -170,14 +171,20 @@ fn island_enter_leave(
     commands: &mut Commands,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut clear_color: ResMut<ClearColor>,
+    worldisland_query: Query<(&WorldIsland, Entity)>,
 ) {
     for ev in event_reader.iter(&events) {
         match ev {
-            NavigationEvent::Approach(island, translation) => match state.time {
+            NavigationEvent::Enter(island, translation) => match state.time {
                 DayTime::Night => {
                     println!("sunrise");
                     state.time = DayTime::Day;
                     state.local_island = *island;
+
+                    for (layer, mut visible) in skydome_query.iter_mut() {
+                        visible.is_visible = layer.daytime == DayTime::Day;
+                    }
 
                     let mut palmtree_transform = Transform::from_translation(*translation);
 
@@ -191,7 +198,17 @@ fn island_enter_leave(
                     commands.spawn(palmtree).with(WorldIsland);
                 }
                 DayTime::Day => {
-                    panic!("approach at day");
+                    panic!("enter at day");
+                }
+            },
+            NavigationEvent::Approach(distance) => match state.time {
+                DayTime::Day => {
+                    let value = (1. - ((distance - 600.).min(100.) / 100.)).min(1.);
+                    println!("value {} {}", value, distance);
+                    clear_color.0 = Color::rgb(value - 0.3, value - 0.2, value * value);
+                }
+                DayTime::Night => {
+                    panic!("approach at night");
                 }
             },
             NavigationEvent::Leave => match state.time {
@@ -201,6 +218,9 @@ fn island_enter_leave(
 
                     for (layer, mut visible) in skydome_query.iter_mut() {
                         visible.is_visible = layer.daytime == DayTime::Night;
+                    }
+                    for (_, entity) in worldisland_query.iter() {
+                        commands.despawn(entity);
                     }
                 }
                 DayTime::Night => {

@@ -114,10 +114,10 @@ pub fn spawn_sky(
 
     let islands = vec![
         // SkyDomeIsland::new(super::Island::IslandA, Quat::identity()),
-        // SkyDomeIsland::new(
-        // super::Island::IslandA,
-        // Quat::from_rotation_x(FRAC_PI_2 * 0.4),
-        // ),
+        SkyDomeIsland::new(
+            super::Island::IslandA,
+            Quat::from_rotation_z(FRAC_PI_2 * 0.2) * Quat::from_rotation_x(FRAC_PI_2 * 0.4),
+        ),
         SkyDomeIsland::new(
             super::Island::Home,
             Quat::from_rotation_x(FRAC_PI_2 * 0.1) * Quat::from_rotation_y(FRAC_PI_2 * 0.2),
@@ -213,7 +213,6 @@ fn sky_pipelines(
 pub fn skydome_system(
     state: Res<InGameState>,
     skydome: Res<SkyDome>,
-    mut clear_color: ResMut<ClearColor>,
     mut skydome_query: Query<(&SkyDomeLayer, &mut Transform, &mut Visible)>,
     mut lines: ResMut<DebugLines>,
     island_query: Query<&SkyDomeIsland>,
@@ -253,8 +252,7 @@ pub fn skydome_system(
                         let mut vec: Vec3 = boat_transform.translation + (island_vec * 5000.);
                         vec.y = 0.;
 
-                        ev_approach.send(super::NavigationEvent::Approach(island.id, vec));
-                        clear_color.0 = Color::CYAN;
+                        ev_approach.send(super::NavigationEvent::Enter(island.id, vec));
                     }
 
                     // debug lines
@@ -273,7 +271,11 @@ pub fn skydome_system(
             if let Some((_, transform)) = worldisland_query.iter().next() {
                 if let Some((_, boat_transform)) = boat_query.iter().next() {
                     let distance = boat_transform.translation.distance(transform.translation);
-                    println!("distance {}", distance);
+                    if distance > 700. {
+                        ev_approach.send(super::NavigationEvent::Leave);
+                    } else {
+                        ev_approach.send(super::NavigationEvent::Approach(distance));
+                    }
                 }
             }
         }
