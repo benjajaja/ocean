@@ -26,7 +26,7 @@ pub fn boat_physics_system(
             boat.world_rotation += -boat.steer * time.delta_seconds();
             let world_rotation_quat = Quat::from_rotation_y(boat.world_rotation);
 
-            let speed = boat.thrust * 1.6;
+            let speed = boat.thrust * time.delta_seconds() * 100.;
             // + boat.thrust * boat.nose_angle.abs();
             let thrust_vector = Vec3::new(0., 0., speed);
             let jump = world_rotation_quat * thrust_vector;

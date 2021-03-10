@@ -182,10 +182,6 @@ fn island_enter_leave(
                     state.time = DayTime::Day;
                     state.local_island = *island;
 
-                    for (layer, mut visible) in skydome_query.iter_mut() {
-                        visible.is_visible = layer.daytime == DayTime::Day;
-                    }
-
                     let mut palmtree_transform = Transform::from_translation(*translation);
 
                     palmtree_transform.scale = Vec3::new(4., 4., 4.);
