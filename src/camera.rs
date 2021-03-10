@@ -41,8 +41,8 @@ pub fn camera_system(
             );
 
             transform.translation = camera.bobber.translation
-                + camera.bobber.rotation.mul_vec3(Vec3::new(0.0, 5.0, -15.0))
-                + Vec3::new(0.0, -boat.thrust * 1.5, 0.0);
+                + camera.bobber.rotation.mul_vec3(Vec3::new(0.0, 5.0, -15.0));
+            // + Vec3::new(0.0, -boat.thrust * 1.5, 0.0);
 
             let mut looking_at = camera.bobber.translation;
             match camera.looking_up {

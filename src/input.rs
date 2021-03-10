@@ -26,6 +26,14 @@ pub fn keyboard_input_system(
         } else if boat.thrust > 0.0 {
             boat.thrust = (boat.thrust - INPUT_DECAY * time.delta_seconds()).max(0.0);
         }
+        if keyboard_input.pressed(KeyCode::S) {
+            if boat.thrust > -BOAT_MAX_THRUST {
+                boat.thrust =
+                    (boat.thrust - INPUT_ACCEL * time.delta_seconds()).max(-BOAT_MAX_THRUST);
+            }
+        } else if boat.thrust < 0.0 {
+            boat.thrust = (boat.thrust + INPUT_DECAY * time.delta_seconds()).max(0.0);
+        }
 
         if keyboard_input.pressed(KeyCode::A) {
             if boat.steer > -1.0 {
