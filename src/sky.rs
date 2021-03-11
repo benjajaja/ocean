@@ -8,8 +8,7 @@ use bevy::{
     render::{
         pipeline::{PipelineDescriptor, RenderPipeline},
         render_graph::{base, AssetRenderResourcesNode, RenderGraph},
-        renderer::RenderResources,
-        shader::{ShaderStage, ShaderStages},
+        shader::ShaderStages,
     },
 };
 use bevy_prototype_debug_lines::*;
@@ -43,27 +42,12 @@ impl SkyDomeIsland {
     }
 }
 
-// sky sprites
-#[derive(RenderResources, Default, TypeUuid)]
-#[uuid = "0320b9b8-dead-beef-8bfa-c94008177b17"]
-pub struct SkySpriteMaterial {
-    texture: Handle<Texture>,
-}
-const SKY_VERTEX_SHADER: &str = include_str!("../assets/shaders/sky.vert");
-const SKY_FRAGMENT_SHADER: &str = include_str!("../assets/shaders/sky.frag");
-
-#[derive(RenderResources, Default, TypeUuid)]
-#[uuid = "0320b9b8-beef-dead-8bfa-c94008177b17"]
-pub struct SkyDayMaterial {}
-const SKY_DAY_VERTEX_SHADER: &str = include_str!("../assets/shaders/sky_day.vert");
-const SKY_DAY_FRAGMENT_SHADER: &str = include_str!("../assets/shaders/sky_day.frag");
+pub const FORWARD_PIPELINE_HANDLE: HandleUntyped =
+    HandleUntyped::weak_from_u64(PipelineDescriptor::TYPE_UUID, 13148362314012771389);
 
 pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
     app.add_resource(ClearColor(Color::rgb(0., 0., 0.)));
     app.add_resource(SkyDome::new());
-
-    app.add_asset::<SkySpriteMaterial>();
-    app.add_asset::<SkyDayMaterial>();
 
     app.add_startup_system(spawn_sky.system());
     app.add_system(skydome_system.system());
@@ -73,31 +57,26 @@ pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::A
 pub fn spawn_sky(
     commands: &mut Commands,
     mut pipelines: ResMut<Assets<PipelineDescriptor>>,
-    mut shaders: ResMut<Assets<Shader>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut sky_materials: ResMut<Assets<SkySpriteMaterial>>,
-    mut sky_day_materials: ResMut<Assets<SkyDayMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     mut render_graph: ResMut<RenderGraph>,
     asset_server: Res<AssetServer>,
 ) {
-    let render_pipelines = sky_pipelines(
-        &mut shaders,
-        &mut pipelines,
-        &mut render_graph,
-        "SkySpriteMaterial",
-        SKY_FRAGMENT_SHADER,
-        SKY_VERTEX_SHADER,
-    );
+    let render_pipelines = sky_pipelines(&mut pipelines, &mut render_graph, "StandardMaterial");
 
     let texture_handle: Handle<Texture> = asset_server.load("star.png");
     let texture_handle_islands: Handle<Texture> = asset_server.load("palmtree_sky.png");
 
-    let sky_material = sky_materials.add(SkySpriteMaterial {
-        texture: texture_handle,
+    let sky_material = materials.add(StandardMaterial {
+        albedo: Color::WHITE,
+        albedo_texture: Some(texture_handle),
+        shaded: false,
     });
 
-    let sky_material_islands = sky_materials.add(SkySpriteMaterial {
-        texture: texture_handle_islands,
+    let sky_material_islands = materials.add(StandardMaterial {
+        albedo: Color::WHITE,
+        albedo_texture: Some(texture_handle_islands),
+        shaded: false,
     });
 
     commands
@@ -146,47 +125,18 @@ pub fn spawn_sky(
     for island in islands {
         commands.spawn((island,));
     }
-
-    // DAY
-
-    // let day_render_pipelines = sky_pipelines(
-    // &mut shaders,
-    // &mut pipelines,
-    // &mut render_graph,
-    // "SkyMaterial",
-    // SKY_DAY_FRAGMENT_SHADER,
-    // SKY_DAY_VERTEX_SHADER,
-    // );
-    //
-    // let sky_material = sky_day_materials.add(SkyDayMaterial {});
-    // commands
-    // .spawn(PbrBundle {
-    // mesh: meshes.add(stripe::island_stars(StarDef { size: 0.5 })),
-    // transform: Transform::from_scale(Vec3::splat(100.0)),
-    // render_pipelines: day_render_pipelines.clone(),
-    // visible: Visible {
-    // is_visible: false,
-    // is_transparent: false,
-    // },
-    // ..Default::default()
-    // })
-    // .with(sky_material)
-    // .with(SkyDomeLayer {
-    // daytime: DayTime::Day,
-    // });
 }
 
 fn sky_pipelines(
-    shaders: &mut ResMut<Assets<Shader>>,
     pipelines: &mut ResMut<Assets<PipelineDescriptor>>,
     render_graph: &mut ResMut<RenderGraph>,
     material_name: &'static str,
-    frag: &str,
-    vert: &str,
 ) -> RenderPipelines {
+    let forward_pipeline_handle = pipelines.get(FORWARD_PIPELINE_HANDLE).unwrap();
+
     let mut descriptor = PipelineDescriptor::default_config(ShaderStages {
-        vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, vert)),
-        fragment: Some(shaders.add(Shader::from_glsl(ShaderStage::Fragment, frag))),
+        vertex: forward_pipeline_handle.shader_stages.vertex.clone(),
+        fragment: forward_pipeline_handle.shader_stages.fragment.clone(),
     });
     descriptor.depth_stencil_state =
         descriptor
@@ -201,7 +151,7 @@ fn sky_pipelines(
     let sky_pipeline_handle = pipelines.add(descriptor);
     render_graph.add_system_node(
         material_name,
-        AssetRenderResourcesNode::<SkySpriteMaterial>::new(true),
+        AssetRenderResourcesNode::<StandardMaterial>::new(true),
     );
     render_graph
         .add_node_edge(material_name, base::node::MAIN_PASS)
