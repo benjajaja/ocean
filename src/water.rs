@@ -80,8 +80,15 @@ struct WaterMaterial {
     pub wave2: Vec4,
     pub wave3: Vec4,
 }
+
+#[cfg(not(target_arch = "wasm32"))]
 const WATER_VERTEX_SHADER: &str = include_str!("../assets/shaders/water.vert");
+#[cfg(not(target_arch = "wasm32"))]
 const WATER_FRAGMENT_SHADER: &str = include_str!("../assets/shaders/water.frag");
+#[cfg(target_arch = "wasm32")]
+const WATER_VERTEX_SHADER: &str = include_str!("../assets/shaders/water_webgl.vert");
+#[cfg(target_arch = "wasm32")]
+const WATER_FRAGMENT_SHADER: &str = include_str!("../assets/shaders/water_webgl.frag");
 
 pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
     app.add_asset::<WaterMaterial>()

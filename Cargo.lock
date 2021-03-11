@@ -508,15 +508,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_prototype_debug_lines"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f6efbb888b556ac12f48eccfae87f75eff33f1583499c172bf5a0ce7ef5f0da"
-dependencies = [
- "bevy",
-]
-
-[[package]]
 name = "bevy_reflect"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -998,9 +989,9 @@ checksum = "28b9d6de7f49e22cf97ad17fc4036ece69300032f45f78f30b4a4482cdc3f4a6"
 
 [[package]]
 name = "cookie"
-version = "0.14.3"
+version = "0.14.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "784ad0fbab4f3e9cef09f20e0aea6000ae08d2cb98ac4c0abc53df18803d702f"
+checksum = "03a5d7b21829bc7b4bf4754a978a241ae54ea55a40f92bb20216e54096f4b951"
 dependencies = [
  "percent-encoding",
  "time 0.2.25",
@@ -2564,7 +2555,6 @@ name = "ocean"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bevy_prototype_debug_lines",
  "rand",
 ]
 

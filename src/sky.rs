@@ -11,7 +11,7 @@ use bevy::{
         shader::ShaderStages,
     },
 };
-use bevy_prototype_debug_lines::*;
+// use bevy_prototype_debug_lines::*;
 use std::f32::consts::FRAC_PI_2;
 
 pub struct SkyDomeLayer {
@@ -164,7 +164,7 @@ pub fn skydome_system(
     state: Res<InGameState>,
     skydome: Res<SkyDome>,
     mut skydome_query: Query<(&SkyDomeLayer, &mut Transform, &mut Visible)>,
-    mut lines: ResMut<DebugLines>,
+    // mut lines: ResMut<DebugLines>,
     island_query: Query<&SkyDomeIsland>,
     boat_query: Query<(&PlayerBoat, &Transform)>,
     camera_query: Query<(&Transform, &super::camera::CameraTracker)>,
@@ -183,12 +183,12 @@ pub fn skydome_system(
             let boat_transform = boat_query.iter().next().map(|t| t.1);
 
             if let Some(boat_transform) = boat_transform {
-                lines.line_colored(
-                    boat_transform.translation,
-                    boat_transform.translation + (Vec3::new(0.0, 100.0, 0.0)),
-                    0.01,
-                    Color::GREEN,
-                );
+                // lines.line_colored(
+                // boat_transform.translation,
+                // boat_transform.translation + (Vec3::new(0.0, 100.0, 0.0)),
+                // 0.01,
+                // Color::GREEN,
+                // );
 
                 let sky_vec = Vec3::unit_y();
                 // let sky_inverse = skydome.rotation.conjugate();
@@ -209,13 +209,13 @@ pub fn skydome_system(
                     }
 
                     // debug lines
-                    lines.line_colored(
-                        boat_transform.translation,
-                        boat_transform.translation
-                            + ((skydome.rotation * island.rotation) * Vec3::new(0.0, 1000.0, 0.0)),
-                        0.1,
-                        Color::RED,
-                    );
+                    // lines.line_colored(
+                    // boat_transform.translation,
+                    // boat_transform.translation
+                    // + ((skydome.rotation * island.rotation) * Vec3::new(0.0, 1000.0, 0.0)),
+                    // 0.1,
+                    // Color::RED,
+                    // );
                 }
             }
         }

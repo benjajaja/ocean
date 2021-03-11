@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_prototype_debug_lines::*;
+// use bevy_prototype_debug_lines::*;
 use std::f32::consts::{FRAC_PI_2, PI};
 mod boat;
 use boat::PlayerBoat;
@@ -41,8 +41,10 @@ fn main() {
 
     let mut app = App::build();
     app.add_resource(Msaa { samples: 4 })
-        .add_plugins(DefaultPlugins)
-        .add_plugin(DebugLinesPlugin);
+        .add_plugins(DefaultPlugins);
+    // .add_plugin(DebugLinesPlugin);
+    #[cfg(target_arch = "wasm32")]
+    app.add_plugin(bevy_webgl2::WebGL2Plugin);
 
     app.add_resource(State::new(AppState::InGame))
         .add_resource(Events::<NavigationEvent>::default())
