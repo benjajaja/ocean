@@ -1,8 +1,10 @@
 use crate::sky::SkyDome;
+use crate::DayTime;
+use crate::InGameState;
 
 use super::water;
 use bevy::prelude::*;
-use std::f32::consts::FRAC_PI_2;
+use std::f32::consts::{FRAC_PI_2, PI};
 
 pub struct PlayerBoat {
     pub thrust: f32,
@@ -20,6 +22,8 @@ pub fn boat_physics_system(
     mut boat_query: Query<(&mut PlayerBoat, &mut Transform)>,
     mut water_transform_query: Query<(&mut water::Water, &mut Transform)>,
     mut skydome: ResMut<SkyDome>,
+    state: Res<InGameState>,
+    worldisland_query: Query<(&super::WorldIsland, &Transform)>,
 ) {
     if let Some((mut boat, mut boat_transform)) = boat_query.iter_mut().next() {
         if let Some((water, mut water_transform)) = water_transform_query.iter_mut().next() {
@@ -34,9 +38,6 @@ pub fn boat_physics_system(
             let new_translation = boat_transform.translation + jump;
 
             boat.speed = jump.length();
-
-            // rotate skydomes from boat jump
-            skydome.rotation = (move_skydome(jump) * skydome.rotation).normalize();
 
             // TODO: make weather_update_system
             // water::set_waves(&mut water, weather.wave_intensity);
@@ -91,13 +92,36 @@ pub fn boat_physics_system(
                 }
             }
             boat_transform.translation = new_translation;
+
+            // rotate skydomes from boat jump only at night (change to events?)
+            match state.time {
+                DayTime::Night => {
+                    skydome.rotation = (jump_skydome(jump) * skydome.rotation).normalize();
+                }
+                DayTime::Day => {
+                    if let Some((island, island_transform)) = worldisland_query.iter().next() {
+                        skydome.rotation = position_skydome(
+                            boat_transform.translation,
+                            island_transform.translation,
+                            island.sky_rotation,
+                        );
+                    }
+                }
+            }
         }
     }
 }
 
-fn move_skydome(jump: Vec3) -> Quat {
+fn jump_skydome(jump: Vec3) -> Quat {
     let right_angle = Quat::from_rotation_y(FRAC_PI_2);
     let rotation_axis = right_angle * jump;
     let rotation = Quat::from_axis_angle(rotation_axis, -jump.length() * 0.0001);
     rotation
+}
+
+fn position_skydome(boat: Vec3, island: Vec3, sky_rotation: Quat) -> Quat {
+    let pointer = sky_rotation * Vec3::unit_z();
+    let mut transform = Transform::identity();
+    transform.look_at(pointer, Vec3::unit_y());
+    transform.rotation * Quat::from_rotation_y(PI)
 }

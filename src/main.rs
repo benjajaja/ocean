@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-// use bevy_prototype_debug_lines::*;
+use bevy_prototype_debug_lines::*;
 use std::f32::consts::{FRAC_PI_2, PI};
 mod boat;
 use boat::PlayerBoat;
@@ -13,7 +13,7 @@ mod water;
 
 #[derive(Debug, Clone)]
 enum AppState {
-    Menu,
+    // Menu,
     InGame,
 }
 
@@ -26,7 +26,6 @@ pub enum DayTime {
 #[derive(Debug)]
 pub struct InGameState {
     time: DayTime,
-    local_island: Island,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -42,7 +41,7 @@ fn main() {
     let mut app = App::build();
     app.add_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins);
-    // .add_plugin(DebugLinesPlugin);
+    app.add_plugin(DebugLinesPlugin);
     #[cfg(target_arch = "wasm32")]
     app.add_plugin(bevy_webgl2::WebGL2Plugin);
 
@@ -50,7 +49,6 @@ fn main() {
         .add_resource(Events::<NavigationEvent>::default())
         .add_resource(InGameState {
             time: DayTime::Night,
-            local_island: Island::Home,
         });
 
     app.add_startup_system(setup.system());
@@ -158,12 +156,15 @@ fn setup(
 
 #[derive(Debug)]
 pub enum NavigationEvent {
-    Enter(Island, Vec3),
+    Enter(Island, Quat, Vec3),
     Approach(f32),
     Leave,
 }
 
-pub struct WorldIsland;
+pub struct WorldIsland {
+    island: Island,
+    sky_rotation: Quat,
+}
 
 fn island_enter_leave(
     events: Res<Events<NavigationEvent>>,
@@ -178,11 +179,10 @@ fn island_enter_leave(
 ) {
     for ev in event_reader.iter(&events) {
         match ev {
-            NavigationEvent::Enter(island, translation) => match state.time {
+            NavigationEvent::Enter(island, sky_rotation, translation) => match state.time {
                 DayTime::Night => {
                     println!("sunrise");
                     state.time = DayTime::Day;
-                    state.local_island = *island;
 
                     let mut palmtree_transform = Transform::from_translation(*translation);
 
@@ -193,7 +193,10 @@ fn island_enter_leave(
                         transform: palmtree_transform,
                         ..Default::default()
                     };
-                    commands.spawn(palmtree).with(WorldIsland);
+                    commands.spawn(palmtree).with(WorldIsland {
+                        island: *island,
+                        sky_rotation: *sky_rotation,
+                    });
                 }
                 DayTime::Day => {
                     panic!("enter at day");
@@ -201,8 +204,7 @@ fn island_enter_leave(
             },
             NavigationEvent::Approach(distance) => match state.time {
                 DayTime::Day => {
-                    let value = (1. - ((distance - 600.).min(100.) / 100.)).min(1.);
-                    println!("value {} {}", value, distance);
+                    let value = (1. - ((distance - 600.).min(100.) / 100.)).min(1.) * 0.75;
                     clear_color.0 = Color::rgb(value - 0.3, value - 0.2, value * value);
                 }
                 DayTime::Night => {
