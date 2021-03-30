@@ -1,4 +1,3 @@
-use crate::boat::PlayerBoat;
 use crate::stripe;
 use crate::DayTime;
 use crate::InGameState;
@@ -20,12 +19,14 @@ pub struct SkyDomeLayer {
 
 pub struct SkyDome {
     pub rotation: Quat,
+    pub locked_island: bool,
 }
 
 impl SkyDome {
     pub fn new() -> Self {
         SkyDome {
             rotation: Quat::identity(),
+            locked_island: false,
         }
     }
 }
@@ -92,21 +93,21 @@ pub fn spawn_sky(
         });
 
     let islands = vec![
-        SkyDomeIsland::new(
-            super::Island::IslandA,
-            Quat::from_rotation_z(FRAC_PI_2 * 0.9),
-        ),
-        SkyDomeIsland::new(
-            super::Island::IslandA,
-            Quat::from_rotation_x(FRAC_PI_2 * 0.9),
-        ),
-        SkyDomeIsland::new(
-            super::Island::IslandA,
-            Quat::from_rotation_z(FRAC_PI_2 * 0.2) * Quat::from_rotation_x(FRAC_PI_2 * 0.1),
-        ),
+        // SkyDomeIsland::new(
+        // super::Island::IslandA,
+        // Quat::from_rotation_z(FRAC_PI_2 * 0.9),
+        // ),
+        // SkyDomeIsland::new(
+        // super::Island::IslandA,
+        // Quat::from_rotation_x(FRAC_PI_2 * 0.9),
+        // ),
         SkyDomeIsland::new(
             super::Island::Home,
             Quat::from_rotation_x(FRAC_PI_2 * 0.1) * Quat::from_rotation_y(FRAC_PI_2 * 0.2),
+        ),
+        SkyDomeIsland::new(
+            super::Island::IslandA,
+            Quat::from_rotation_x(FRAC_PI_2 * -0.15) * Quat::from_rotation_z(FRAC_PI_2 * 0.12),
         ),
     ];
 
@@ -132,6 +133,19 @@ pub fn spawn_sky(
     for island in islands {
         commands.spawn((island,));
     }
+
+    // commands
+    // .spawn(PbrBundle {
+    // mesh: meshes.add(Mesh::from(shape::Icosphere {
+    // radius: -110.,
+    // subdivisions: 4,
+    // })),
+    // material: materials.add(Color::rgb(0.5, 0.9, 0.6).into()),
+    // ..Default::default()
+    // })
+    // .with(SkyDomeLayer {
+    // daytime: DayTime::Night,
+    // });
 }
 
 fn sky_pipelines(
@@ -168,51 +182,32 @@ fn sky_pipelines(
 }
 
 pub fn skydome_system(
+    events: Res<Events<super::boat::MoveEvent>>,
+    mut event_reader: Local<EventReader<super::boat::MoveEvent>>,
     state: Res<InGameState>,
     mut skydome: ResMut<SkyDome>,
     mut skydome_query: Query<(&SkyDomeLayer, &mut Transform, &mut Visible)>,
-    mut lines: ResMut<DebugLines>,
     island_query: Query<&SkyDomeIsland>,
-    boat_query: Query<(&PlayerBoat, &Transform)>,
-    camera_query: Query<(&Transform, &super::camera::CameraTracker)>,
     mut ev_approach: ResMut<Events<super::NavigationEvent>>,
     worldisland_query: Query<(&super::WorldIsland, &Transform)>,
+    mut clear_color: ResMut<ClearColor>,
+    mut lines: ResMut<DebugLines>,
 ) {
-    let boat_transform = boat_query.iter().next().map(|t| t.1);
-    if let Some(boat_transform) = boat_transform {
-        lines.line_colored(
-            boat_transform.translation,
-            boat_transform.translation + (Vec3::new(0.0, 10000.0, 0.0)),
-            0.01,
-            Color::GREEN,
-        );
-    }
-    match state.time {
-        DayTime::Night => {
-            let boat_transform = boat_query.iter().next().map(|t| t.1);
+    for ev in event_reader.iter(&events) {
+        let translation = ev.translation;
 
-            if let Some(boat_transform) = boat_transform {
-                // lines.line_colored(
-                // boat_transform.translation,
-                // boat_transform.translation + (Vec3::new(0.0, 100.0, 0.0)),
-                // 0.01,
-                // Color::GREEN,
-                // );
+        match state.time {
+            DayTime::Night => {
+                skydome.rotation = (jump_skydome(ev.jump) * skydome.rotation).normalize();
 
                 let sky_vec = Vec3::unit_y();
-                // let sky_inverse = skydome.rotation.conjugate();
                 for island in island_query.iter() {
                     let island_vec = (skydome.rotation * island.rotation) * Vec3::unit_y();
                     let angle = island_vec.dot(sky_vec);
-                    println!("angle {}", angle);
 
                     if angle > 0.99 {
-                        let mut vec: Vec3 = boat_transform.translation + (island_vec * 5000.);
+                        let mut vec: Vec3 = translation + (island_vec * 5000.);
                         vec.y = 0.;
-
-                        for (layer, _, mut visible) in skydome_query.iter_mut() {
-                            // visible.is_visible = layer.daytime == DayTime::Day;
-                        }
 
                         ev_approach.send(super::NavigationEvent::Enter(
                             island.id,
@@ -220,61 +215,89 @@ pub fn skydome_system(
                             vec,
                         ));
                     }
-
-                    // debug lines
-                    // lines.line_colored(
-                    // boat_transform.translation,
-                    // boat_transform.translation
-                    // + ((skydome.rotation * island.rotation) * Vec3::new(0.0, 1000.0, 0.0)),
-                    // 0.1,
-                    // Color::RED,
-                    // );
                 }
             }
-        }
-        DayTime::Day => {
-            if let Some((island, island_transform)) = worldisland_query.iter().next() {
-                if let Some((_, boat_transform)) = boat_query.iter().next() {
-                    let distance = boat_transform
-                        .translation
-                        .distance(island_transform.translation);
+            DayTime::Day => {
+                if let Some((island, island_transform)) = worldisland_query.iter().next() {
+                    let distance = translation.distance(island_transform.translation);
                     if distance > 700. {
-                        for (layer, _, mut visible) in skydome_query.iter_mut() {
-                            // visible.is_visible = layer.daytime == DayTime::Night;
-                        }
                         ev_approach.send(super::NavigationEvent::Leave);
                     } else {
-                        let mut from = boat_transform.translation;
-                        from.y = 0.;
-                        let mut to = island_transform.translation;
-                        to.y = 0.;
+                        let distance_frac = 1. - (distance / 700.);
+                        ev_approach.send(super::NavigationEvent::Approach(distance_frac));
 
-                        let angle = FRAC_PI_2 * (distance / 1000.) * 0.5;
-                        let axis = (from - to).normalize();
-                        println!("angle {} (distance {})", angle, distance,);
-                        let rotation =
-                            //Quat::from_rotation_y(FRAC_PI_2) * 
-                            Quat::from_axis_angle(axis, angle);
+                        let value = ((distance_frac - 0.1).max(0.) * 10.).min(1.0);
+                        println!("approach value {} (dist. {})", value, distance_frac);
+                        clear_color.0 = Color::rgb(value - 0.3, value - 0.2, value);
 
-                        // skydome.rotation = island.sky_rotation; // * rotation;
-
-                        lines.line_colored(
-                            boat_transform.translation,
-                            boat_transform.translation + (rotation * Vec3::new(0.0, 1000.0, 0.0)),
-                            0.1,
-                            Color::RED,
-                        );
-
-                        ev_approach.send(super::NavigationEvent::Approach(distance));
+                        const LOCK_DISTANCE: f32 = 0.2;
+                        if distance_frac > LOCK_DISTANCE && !skydome.locked_island {
+                            let axis_angle =
+                                (skydome.rotation * island.sky_rotation).to_axis_angle();
+                            skydome.rotation = Quat::from_axis_angle(axis_angle.0, -axis_angle.1)
+                                * skydome.rotation;
+                            for (_, _, mut visible) in skydome_query.iter_mut() {
+                                visible.is_visible = false;
+                            }
+                            skydome.locked_island = true;
+                        } else if distance_frac < LOCK_DISTANCE {
+                            if skydome.locked_island {
+                                let mut from = translation;
+                                from.y = 0.;
+                                let mut to = island_transform.translation;
+                                to.y = 0.;
+                                let angle = FRAC_PI_2 * 0.05;
+                                let axis = (from - to).normalize();
+                                let rotation = (Quat::from_axis_angle(
+                                    Quat::from_rotation_y(FRAC_PI_2) * axis,
+                                    -angle,
+                                ))
+                                .normalize();
+                                skydome.rotation = rotation * skydome.rotation;
+                                skydome.locked_island = false;
+                                for (_, _, mut visible) in skydome_query.iter_mut() {
+                                    visible.is_visible = true;
+                                }
+                            } else {
+                                skydome.rotation =
+                                    (jump_skydome(ev.jump) * skydome.rotation).normalize();
+                            }
+                        }
                     }
                 }
             }
         }
-    }
-    if let Some((camera_transform, _)) = camera_query.iter().next() {
+
         for (_, mut sky_transform, _) in skydome_query.iter_mut() {
             sky_transform.rotation = skydome.rotation;
-            sky_transform.translation = camera_transform.translation;
         }
+
+        // lines.line_colored(
+        // translation,
+        // translation + (Vec3::new(0.0, 100000.0, 0.0)),
+        // 0.1,
+        // Color::WHITE,
+        // );
+        // lines.line_colored(
+        // translation,
+        // translation + (skydome.rotation * Vec3::new(0.0, 100000.0, 0.0)),
+        // 0.1,
+        // Color::BLUE,
+        // );
+        // for island in island_query.iter() {
+        // lines.line_colored(
+        // translation,
+        // translation + ((skydome.rotation * island.rotation) * Vec3::new(0.0, 1000.0, 0.0)),
+        // 0.1,
+        // Color::RED,
+        // );
+        // }
     }
+}
+
+fn jump_skydome(jump: Vec3) -> Quat {
+    let right_angle = Quat::from_rotation_y(FRAC_PI_2);
+    let rotation_axis = right_angle * jump;
+    let rotation = Quat::from_axis_angle(rotation_axis, -jump.length() / 1000.);
+    rotation
 }

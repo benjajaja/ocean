@@ -42,11 +42,12 @@ fn main() {
     app.add_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins);
     app.add_plugin(DebugLinesPlugin);
-    #[cfg(target_arch = "wasm32")]
-    app.add_plugin(bevy_webgl2::WebGL2Plugin);
+    // #[cfg(target_arch = "wasm32")]
+    // app.add_plugin(bevy_webgl2::WebGL2Plugin);
 
     app.add_resource(State::new(AppState::InGame))
         .add_resource(Events::<NavigationEvent>::default())
+        .add_resource(Events::<boat::MoveEvent>::default())
         .add_resource(InGameState {
             time: DayTime::Night,
         });
@@ -146,7 +147,7 @@ fn setup(
             ..Default::default()
         })
         .with(CameraTracker {
-            bobber: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+            bobber: Transform::from_translation(Vec3::new(0.0, 5.0, 0.0)),
             looking_up: camera::LookingUp::None,
             input_rotation: Quat::identity(),
         })
@@ -170,11 +171,9 @@ fn island_enter_leave(
     events: Res<Events<NavigationEvent>>,
     mut state: ResMut<InGameState>,
     mut event_reader: Local<EventReader<NavigationEvent>>,
-    mut skydome_query: Query<(&sky::SkyDomeLayer, &mut Visible)>,
     commands: &mut Commands,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut clear_color: ResMut<ClearColor>,
     worldisland_query: Query<(&WorldIsland, Entity)>,
 ) {
     for ev in event_reader.iter(&events) {
@@ -203,10 +202,7 @@ fn island_enter_leave(
                 }
             },
             NavigationEvent::Approach(distance) => match state.time {
-                DayTime::Day => {
-                    let value = (1. - ((distance - 600.).min(100.) / 100.)).min(1.) * 0.75;
-                    clear_color.0 = Color::rgb(value - 0.3, value - 0.2, value * value);
-                }
+                DayTime::Day => {}
                 DayTime::Night => {
                     panic!("approach at night");
                 }
@@ -216,9 +212,6 @@ fn island_enter_leave(
                     println!("sunset");
                     state.time = DayTime::Night;
 
-                    for (layer, mut visible) in skydome_query.iter_mut() {
-                        visible.is_visible = layer.daytime == DayTime::Night;
-                    }
                     for (_, entity) in worldisland_query.iter() {
                         commands.despawn(entity);
                     }

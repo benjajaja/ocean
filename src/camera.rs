@@ -26,6 +26,7 @@ pub fn camera_system(
     time: Res<Time>,
     boat_query: Query<(&PlayerBoat, &Transform)>,
     mut camera_query: Query<(&mut Transform, &mut CameraTracker)>,
+    mut skydome_query: Query<(&super::sky::SkyDomeLayer, &mut Transform)>,
 ) {
     if let Some((mut transform, mut camera)) = camera_query.iter_mut().next() {
         if let Some((boat, boat_transform)) = boat_query.iter().next() {
@@ -40,8 +41,8 @@ pub fn camera_system(
                 time.delta_seconds() * CAMERA_ROTATION_FACTOR,
             );
 
-            transform.translation = camera.bobber.translation
-                + camera.bobber.rotation.mul_vec3(Vec3::new(0.0, 5.0, -15.0));
+            transform.translation =
+                camera.bobber.translation + (camera.bobber.rotation * Vec3::new(0.0, 5.0, -15.0));
             // + Vec3::new(0.0, -boat.thrust * 1.5, 0.0);
 
             let mut looking_at = camera.bobber.translation;
@@ -67,6 +68,9 @@ pub fn camera_system(
             }
 
             transform.rotation = transform.looking_at(looking_at, Vec3::unit_y()).rotation;
+            for (_, mut sky_transform) in skydome_query.iter_mut() {
+                sky_transform.translation = transform.translation;
+            }
         }
     }
 }

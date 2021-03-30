@@ -18,7 +18,7 @@ fn spawn_ui(
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let font = asset_server.load("fonts/Meyrin.ttf");
+    let font = asset_server.load("fonts/VCR_OSD_MONO_1.001.ttf");
     let font_size = 32.;
 
     commands
@@ -53,7 +53,7 @@ fn spawn_ui(
                                 ..Default::default()
                             },
                             text: Text {
-                                value: "♥♥♥".to_string(),
+                                value: "###".to_string(),
                                 font: font.clone(),
                                 style: TextStyle {
                                     font_size,
