@@ -123,11 +123,6 @@ fn setup(
                 material: materials.add(Color::rgb(0.2, 0.8, 0.6).into()),
                 ..Default::default()
             });
-            parent.spawn(PbrBundle {
-                mesh: meshes.add(Mesh::from(shape::Cube { size: 0.5 })),
-                material: materials.add(Color::rgb(1.0, 0.8, 0.6).into()),
-                ..Default::default()
-            });
         })
         .with(PlayerBoat {
             thrust: 0.,

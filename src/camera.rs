@@ -41,8 +41,10 @@ pub fn camera_system(
                 time.delta_seconds() * CAMERA_ROTATION_FACTOR,
             );
 
-            transform.translation =
-                camera.bobber.translation + (camera.bobber.rotation * Vec3::new(0.0, 5.0, -15.0));
+            let camera_z = -15. + (camera.looking_up.value() * 14.99);
+            println!("look {}", camera_z);
+            transform.translation = camera.bobber.translation
+                + (camera.bobber.rotation * Vec3::new(0.0, 5.0, camera_z));
             // + Vec3::new(0.0, -boat.thrust * 1.5, 0.0);
 
             let mut looking_at = camera.bobber.translation;
