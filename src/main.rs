@@ -119,9 +119,8 @@ fn setup(
         .spawn((Transform::default(), GlobalTransform::default()))
         .with_children(|parent| {
             parent.spawn(PbrBundle {
-                mesh: asset_server.load("flota1.glb#Mesh0/Primitive0"),
+                mesh: asset_server.load("correolas.glb#Mesh0/Primitive0"),
                 material: materials.add(Color::rgb(0.2, 0.8, 0.6).into()),
-                transform: Transform::from_rotation(Quat::from_rotation_y(FRAC_PI_2)), // the gltf is not looking at -z
                 ..Default::default()
             });
             parent.spawn(PbrBundle {
