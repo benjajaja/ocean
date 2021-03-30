@@ -11,8 +11,8 @@ use bevy::{
 use std::f32::consts::PI;
 use std::ops::AddAssign;
 
-struct Weather {
-    wave_intensity: f32,
+pub struct Weather {
+    pub wave_intensity: f32,
 }
 
 pub struct Water {
@@ -173,6 +173,9 @@ fn gerstner_wave(
     binormal: &mut Vec3,
     props: &WaveProperties,
 ) -> () {
+    if props.steepness == 0. {
+        return;
+    }
     let d = props.direction.normalize();
 
     let position_xz = Vec2::new(position.x, position.z);
@@ -233,17 +236,17 @@ pub fn get_waves(intensity: f32) -> [WaveProperties; 3] {
     const STEEPNESS_FACTOR: f32 = 0.1;
     [
         WaveProperties {
-            wavelength: intensity * 60.,
+            wavelength: 60.,
             steepness: intensity * STEEPNESS_FACTOR,
             direction: Vec2::new(1.0, 0.0),
         },
         WaveProperties {
-            wavelength: intensity * 31.,
+            wavelength: 31.,
             steepness: intensity * STEEPNESS_FACTOR,
             direction: Vec2::new(1.0, 0.6),
         },
         WaveProperties {
-            wavelength: intensity * 18.,
+            wavelength: 18.,
             steepness: intensity * STEEPNESS_FACTOR,
             direction: Vec2::new(1.0, 1.3),
         },
@@ -286,19 +289,23 @@ pub fn wave_probe_system(
 
 fn update_system(
     time: Res<Time>,
-    // weather: Res<Weather>,
+    weather: Res<Weather>,
     mut water_mats: ResMut<Assets<WaterMaterial>>,
     water_material_query: Query<&Handle<WaterMaterial>>,
     camera_query: Query<(&Transform, &WaterCamera)>,
-    water_query: Query<&Water>,
+    mut water_query: Query<&mut Water>,
 ) {
     if let Some(water_material) = water_material_query
         .iter()
         .next()
         .and_then(|water_handle| water_mats.get_mut(water_handle))
     {
-        if let Some(water) = water_query.iter().next() {
+        if let Some(mut water) = water_query.iter_mut().next() {
             water_material.time = time.seconds_since_startup() as f32 * water.wave_speed;
+            set_waves(&mut water, weather.wave_intensity);
+            water_material.wave1 = water.waves[0].to_vec4();
+            water_material.wave2 = water.waves[1].to_vec4();
+            water_material.wave3 = water.waves[2].to_vec4();
         }
 
         if let Some((transform, _)) = camera_query.iter().next() {

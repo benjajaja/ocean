@@ -75,6 +75,9 @@ void gerstner_wave(
     vec2 d = normalize(props.xy);
     float wavelength = props.z;
     float steepness = props.w;
+    if (steepness == 0) {
+      return;
+    }
 
     float k = 2 * M_PI / wavelength;
     float c = sqrt(9.8 / k); // Wave speed

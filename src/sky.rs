@@ -191,6 +191,7 @@ pub fn skydome_system(
     mut ev_approach: ResMut<Events<super::NavigationEvent>>,
     worldisland_query: Query<(&super::WorldIsland, &Transform)>,
     mut clear_color: ResMut<ClearColor>,
+    mut weather: ResMut<super::water::Weather>,
     mut lines: ResMut<DebugLines>,
 ) {
     for ev in event_reader.iter(&events) {
@@ -229,6 +230,7 @@ pub fn skydome_system(
                         let value = ((distance_frac - 0.1).max(0.) * 10.).min(1.0);
                         println!("approach value {} (dist. {})", value, distance_frac);
                         clear_color.0 = Color::rgb(value - 0.3, value - 0.2, value);
+                        weather.wave_intensity = 1. - value;
 
                         const LOCK_DISTANCE: f32 = 0.2;
                         if distance_frac > LOCK_DISTANCE && !skydome.locked_island {
