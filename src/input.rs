@@ -2,7 +2,7 @@ use crate::boat;
 use crate::camera::{CameraTracker, LookingUp};
 use bevy::{input::mouse::MouseMotion, prelude::*};
 
-const INPUT_ACCEL: f32 = 10.0;
+const INPUT_ACCEL: f32 = 2.0;
 const INPUT_DECAY: f32 = 10.0;
 const STEER_ACCEL: f32 = 10.0;
 const BOAT_MAX_THRUST: f32 = 1.0;

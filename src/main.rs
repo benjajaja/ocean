@@ -58,7 +58,7 @@ fn main() {
 
     sky::add_systems(&mut app);
     water::add_systems(&mut app);
-    // ui::add_systems(&mut app);
+    ui::add_systems(&mut app);
     app.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 1.0 / 5.0f32,
@@ -186,7 +186,7 @@ fn island_enter_leave(
                     });
                 }
                 DayTime::Day => {
-                    panic!("enter at day");
+                    println!("enter at day?");
                 }
             },
             NavigationEvent::Approach(distance) => match state.time {
@@ -205,7 +205,7 @@ fn island_enter_leave(
                     }
                 }
                 DayTime::Night => {
-                    panic!("leave at night");
+                    println!("leave at night");
                 }
             },
         }

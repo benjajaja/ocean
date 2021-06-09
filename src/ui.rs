@@ -10,7 +10,8 @@ struct BoatHUDText;
 pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
     app.add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_startup_system(spawn_ui.system())
-    // .add_system(text_update_system.system())
+        .add_system(text_update_fps_system.system())
+        .add_system(text_update_hud_system.system())
 }
 
 fn spawn_ui(
@@ -18,10 +19,119 @@ fn spawn_ui(
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    // let font = asset_server.load("fonts/VCR_OSD_MONO_1.001.ttf");
+    let font = asset_server.load("fonts/VCR_OSD_MONO_1.001.ttf");
     let font_size = 32.;
 
     commands.spawn_bundle(UiCameraBundle::default());
+
+    commands
+        .spawn_bundle(NodeBundle {
+            style: Style {
+                size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                position_type: PositionType::Absolute,
+                justify_content: JustifyContent::SpaceBetween,
+                ..Default::default()
+            },
+            material: materials.add(Color::NONE.into()),
+            ..Default::default()
+        })
+        .with_children(|parent| {
+            parent
+                .spawn_bundle(TextBundle {
+                    style: Style {
+                        align_self: AlignSelf::FlexEnd,
+                        ..Default::default()
+                    },
+                    // Use `Text` directly
+                    text: Text {
+                        // Construct a `Vec` of `TextSection`s
+                        sections: vec![
+                            TextSection {
+                                value: "FPS: ".to_string(),
+                                style: TextStyle {
+                                    font: font.clone(),
+                                    font_size: 10.0,
+                                    color: Color::WHITE,
+                                },
+                            },
+                            TextSection {
+                                value: "".to_string(),
+                                style: TextStyle {
+                                    font: font.clone(),
+                                    font_size: 10.0,
+                                    color: Color::GOLD,
+                                },
+                            },
+                        ],
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+                .insert(FpsText);
+        });
+
+    commands
+        .spawn_bundle(NodeBundle {
+            style: Style {
+                size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                position_type: PositionType::Absolute,
+                justify_content: JustifyContent::SpaceBetween,
+                ..Default::default()
+            },
+            material: materials.add(Color::NONE.into()),
+            ..Default::default()
+        })
+        .with_children(|parent| {
+            parent
+                .spawn_bundle(TextBundle {
+                    style: Style {
+                        align_self: AlignSelf::FlexStart, // bottom
+                        ..Default::default()
+                    },
+                    // Use `Text` directly
+                    text: Text {
+                        // Construct a `Vec` of `TextSection`s
+                        sections: vec![
+                            TextSection {
+                                value: "Thrust: ".to_string(),
+                                style: TextStyle {
+                                    font: font.clone(),
+                                    font_size: 10.0,
+                                    color: Color::WHITE,
+                                },
+                            },
+                            TextSection {
+                                value: "".to_string(),
+                                style: TextStyle {
+                                    font: font.clone(),
+                                    font_size: 10.0,
+                                    color: Color::GOLD,
+                                },
+                            },
+                            TextSection {
+                                value: " Speed: ".to_string(),
+                                style: TextStyle {
+                                    font: font.clone(),
+                                    font_size: 10.0,
+                                    color: Color::WHITE,
+                                },
+                            },
+                            TextSection {
+                                value: "".to_string(),
+                                style: TextStyle {
+                                    font: font.clone(),
+                                    font_size: 10.0,
+                                    color: Color::RED,
+                                },
+                            },
+                        ],
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+                .insert(BoatHUDText);
+        });
+
     // commands
     // .spawn(NodeBundle {
     // style: Style {
@@ -113,22 +223,29 @@ fn spawn_ui(
     // });
 }
 
-fn text_update_system(
+fn text_update_fps_system(
     diagnostics: Res<Diagnostics>,
     mut fps_query: Query<&mut Text, With<FpsText>>,
-    mut boat_hud_query: Query<&mut Text, With<BoatHUDText>>,
-    boat_query: Query<&boat::PlayerBoat>,
+    // mut boat_hud_query: Query<&mut Text, With<BoatHUDText>>,
+    // boat_query: Query<&boat::PlayerBoat>,
 ) {
     for mut text in fps_query.iter_mut() {
         if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
             if let Some(average) = fps.average() {
-                // text.value = format!("FPS: {:.2}", average);
+                text.sections[1].value = format!("{:.2}", average);
             }
         }
     }
-    for mut text in boat_hud_query.iter_mut() {
-        if let Some(boat) = boat_query.iter().next() {
-            // text.value = format!("{:.2}speed {:.4}att", boat.speed, boat.nose_angle);
+}
+
+fn text_update_hud_system(
+    mut hud_query: Query<&mut Text, With<BoatHUDText>>,
+    boat_query: Query<&boat::PlayerBoat>,
+) {
+    for mut text in hud_query.iter_mut() {
+        if let Ok(boat) = boat_query.single() {
+            text.sections[1].value = format!("{:.2}", boat.thrust);
+            text.sections[3].value = format!("{:.2}", boat.speed);
         }
     }
 }

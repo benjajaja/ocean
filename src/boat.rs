@@ -1,6 +1,6 @@
 use super::water;
-use crate::water::Water;
-use bevy::{prelude::*, utils::tracing::field::debug};
+use crate::{camera::CameraTracker, water::Water};
+use bevy::prelude::*;
 
 pub struct PlayerBoat {
     pub thrust: f32,
@@ -18,10 +18,12 @@ pub struct MoveEvent {
     pub translation: Vec3,
 }
 
+const CAMERA_ROTATION_FACTOR: f32 = 10.0;
 pub fn boat_physics_system(
     time: Res<Time>,
-    mut boat_query: Query<(&mut PlayerBoat, &mut Transform)>,
+    mut boat_query: Query<(&mut PlayerBoat, &mut Transform), Without<CameraTracker>>,
     water_query: Query<&Water>,
+    mut camera_query: Query<(&mut CameraTracker, &mut Transform), Without<PlayerBoat>>,
     mut ev_move: EventWriter<MoveEvent>,
 ) {
     if let Ok((mut boat, mut boat_transform)) = boat_query.single_mut() {
@@ -47,6 +49,21 @@ pub fn boat_physics_system(
 
             let normal_quat = water::surface_quat(&wavedata);
             boat_transform.rotation = normal_quat * world_rotation_quat;
+        }
+
+        if let Ok((mut camera, mut camera_transform)) = camera_query.single_mut() {
+            camera.bobber.translation.x = boat_transform.translation.x;
+            camera.bobber.translation.z = boat_transform.translation.z;
+
+            camera.bobber.rotation = camera.bobber.rotation.slerp(
+                Quat::from_axis_angle(Vec3::Y, boat.world_rotation).normalize()
+                    * camera.input_rotation,
+                time.delta_seconds() * CAMERA_ROTATION_FACTOR,
+            );
+
+            let camera_z = -15. + (camera.looking_up.value() * 14.99);
+            camera_transform.translation = camera.bobber.translation
+                + (camera.bobber.rotation * Vec3::new(0.0, 5.0, camera_z));
         }
 
         if jump.length() > 0. {
