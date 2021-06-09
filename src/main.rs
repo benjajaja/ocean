@@ -1,6 +1,5 @@
-use bevy::prelude::*;
-use bevy_prototype_debug_lines::*;
-use std::f32::consts::{FRAC_PI_2, PI};
+use bevy::{pbr::AmbientLight, prelude::*};
+use std::f32::consts::PI;
 mod boat;
 use boat::PlayerBoat;
 mod camera;
@@ -11,7 +10,7 @@ mod stripe;
 mod ui;
 mod water;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum AppState {
     // Menu,
     InGame,
@@ -36,25 +35,19 @@ pub enum Island {
 }
 
 fn main() {
-    static STATE: &str = "state";
-
     let mut app = App::build();
-    app.add_resource(Msaa { samples: 4 })
+    app.insert_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins);
-    app.add_plugin(DebugLinesPlugin);
-    // #[cfg(target_arch = "wasm32")]
-    // app.add_plugin(bevy_webgl2::WebGL2Plugin);
 
-    app.add_resource(State::new(AppState::InGame))
-        .add_resource(Events::<NavigationEvent>::default())
-        .add_resource(Events::<boat::MoveEvent>::default())
-        .add_resource(InGameState {
-            time: DayTime::Night,
-        });
+    app.add_state(AppState::InGame);
+    app.add_event::<NavigationEvent>();
+    app.add_event::<boat::MoveEvent>();
+
+    app.insert_resource(InGameState {
+        time: DayTime::Night,
+    });
 
     app.add_startup_system(setup.system());
-
-    app.add_stage_before(stage::UPDATE, STATE, StateStage::<AppState>::default());
 
     app.add_system(bevy::input::system::exit_on_esc_system.system())
         .add_system(input::keyboard_input_system.system())
@@ -65,42 +58,46 @@ fn main() {
 
     sky::add_systems(&mut app);
     water::add_systems(&mut app);
-    ui::add_systems(&mut app);
+    // ui::add_systems(&mut app);
+    app.insert_resource(AmbientLight {
+        color: Color::WHITE,
+        brightness: 1.0 / 5.0f32,
+    });
     app.run();
 }
 
 fn setup(
-    commands: &mut Commands,
+    mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
     // Setup our world
     commands
-        .spawn(PbrBundle {
+        .spawn_bundle(PbrBundle {
             mesh: asset_server.load("flota1.glb#Mesh0/Primitive0"),
             material: materials.add(Color::rgb(0.0, 0.9, 0.6).into()),
             transform: Transform::from_translation(Vec3::new(5.0, 0.0, 0.0)),
             ..Default::default()
         })
-        .with(water::Swimmer {
+        .insert(water::Swimmer {
             world_rotation: PI / 4.,
             ..Default::default()
         });
 
     commands
-        .spawn(PbrBundle {
+        .spawn_bundle(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
             material: materials.add(Color::rgb(0.5, 0.9, 0.6).into()),
             transform: Transform::from_translation(Vec3::new(5.0, 0.0, 20.0)),
             ..Default::default()
         })
-        .with(water::Swimmer {
+        .insert(water::Swimmer {
             ..Default::default()
         });
 
     commands
-        .spawn(PbrBundle {
+        .spawn_bundle(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 0.5 })),
             material: materials.add(StandardMaterial {
                 ..Default::default()
@@ -108,41 +105,42 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(-10.0, 0.0, 5.0)),
             ..Default::default()
         })
-        .with(water::Swimmer::default());
+        .insert(water::Swimmer::default());
 
-    commands.spawn(LightBundle {
+    commands.spawn_bundle(LightBundle {
         transform: Transform::from_translation(Vec3::new(4.0, 50.0, 4.0)),
         ..Default::default()
     });
 
     commands
-        .spawn(PbrBundle {
+        .spawn_bundle(PbrBundle {
             mesh: asset_server.load("correolas.glb#Mesh0/Primitive0"),
             material: materials.add(Color::rgb(0.2, 0.8, 0.6).into()),
             ..Default::default()
         })
-        .with(PlayerBoat {
+        .insert(PlayerBoat {
             thrust: 0.,
             steer: 0.,
             world_rotation: 0.,
             speed: 0.,
-            last_normal: Quat::identity(),
+            last_normal: Quat::IDENTITY,
             nose_angle: 0.,
             airborne: None,
         });
 
     commands
-        .spawn(Camera3dBundle {
+        .spawn_bundle(PerspectiveCameraBundle {
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0))
-                .looking_at(Vec3::new(0.0, 5.0, 1000.0), Vec3::unit_y()),
+                .looking_at(Vec3::new(0.0, 5.0, 1000.0), Vec3::Y),
             ..Default::default()
         })
-        .with(CameraTracker {
+        .insert(CameraTracker {
             bobber: Transform::from_translation(Vec3::new(0.0, 5.0, 0.0)),
             looking_up: camera::LookingUp::None,
-            input_rotation: Quat::identity(),
+            input_rotation: Quat::IDENTITY,
         })
-        .with(water::WaterCamera);
+        .insert(water::WaterCamera);
+
     println!("SkyCamera added.");
 }
 
@@ -159,15 +157,14 @@ pub struct WorldIsland {
 }
 
 fn island_enter_leave(
-    events: Res<Events<NavigationEvent>>,
     mut state: ResMut<InGameState>,
-    mut event_reader: Local<EventReader<NavigationEvent>>,
-    commands: &mut Commands,
+    mut event_reader: EventReader<NavigationEvent>,
+    mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     worldisland_query: Query<(&WorldIsland, Entity)>,
 ) {
-    for ev in event_reader.iter(&events) {
+    for ev in event_reader.iter() {
         match ev {
             NavigationEvent::Enter(island, sky_rotation, translation) => match state.time {
                 DayTime::Night => {
@@ -183,7 +180,7 @@ fn island_enter_leave(
                         transform: palmtree_transform,
                         ..Default::default()
                     };
-                    commands.spawn(palmtree).with(WorldIsland {
+                    commands.spawn_bundle(palmtree).insert(WorldIsland {
                         island: *island,
                         sky_rotation: *sky_rotation,
                     });
@@ -204,7 +201,7 @@ fn island_enter_leave(
                     state.time = DayTime::Night;
 
                     for (_, entity) in worldisland_query.iter() {
-                        commands.despawn(entity);
+                        commands.entity(entity).despawn();
                     }
                 }
                 DayTime::Night => {

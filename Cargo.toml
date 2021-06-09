@@ -25,7 +25,7 @@ opt-level = 3
 # ]
 
 [dependencies]
-bevy = "0.4.0"
+bevy = "0.5.0"
 rand = "0.7"
 bevy_prototype_debug_lines = "0.2.0"
 # bevy = {version="0.4.0", default-features=false}

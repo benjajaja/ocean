@@ -24,55 +24,64 @@ impl LookingUp {
 const CAMERA_ROTATION_FACTOR: f32 = 10.0;
 pub fn camera_system(
     time: Res<Time>,
-    boat_query: Query<(&PlayerBoat, &Transform)>,
-    mut camera_query: Query<(&mut Transform, &mut CameraTracker)>,
-    mut skydome_query: Query<(&super::sky::SkyDomeLayer, &mut Transform)>,
+    mut querys: QuerySet<(
+        Query<(&mut CameraTracker, &mut Transform)>,
+        Query<(&PlayerBoat, &Transform)>,
+        Query<(&mut super::sky::SkyDomeLayer, &mut Transform)>,
+    )>,
+    // boat_query: Query<(&PlayerBoat, &Transform)>,
+    // mut camera_query: Query<(&mut CameraTracker, &mut Transform)>,
+    // mut skydome_query: Query<(&super::sky::SkyDomeLayer, &mut Transform)>,
 ) {
-    if let Some((mut transform, mut camera)) = camera_query.iter_mut().next() {
-        if let Some((boat, boat_transform)) = boat_query.iter().next() {
-            let boat_translation = boat_transform.translation;
+    let mut boat_translation = Vec3::ZERO;
+    let mut boat_rotation: f32 = 0.0;
+    if let Some((boat, boat_transform)) = querys.q1().iter().next() {
+        boat_translation = boat_transform.translation;
+        boat_rotation = boat.world_rotation;
+    }
 
-            camera.bobber.translation.x = boat_translation.x;
-            camera.bobber.translation.z = boat_translation.z;
+    let mut camera_transform_translation = Vec3::ZERO;
+    if let Some((mut camera, mut transform)) = querys.q0_mut().iter_mut().next() {
+        camera.bobber.translation.x = boat_translation.x;
+        camera.bobber.translation.z = boat_translation.z;
 
-            camera.bobber.rotation = camera.bobber.rotation.slerp(
-                Quat::from_axis_angle(Vec3::unit_y(), boat.world_rotation).normalize()
-                    * camera.input_rotation,
-                time.delta_seconds() * CAMERA_ROTATION_FACTOR,
-            );
+        camera.bobber.rotation = camera.bobber.rotation.slerp(
+            Quat::from_axis_angle(Vec3::Y, boat_rotation).normalize() * camera.input_rotation,
+            time.delta_seconds() * CAMERA_ROTATION_FACTOR,
+        );
 
-            let camera_z = -15. + (camera.looking_up.value() * 14.99);
-            println!("look {}", camera_z);
-            transform.translation = camera.bobber.translation
-                + (camera.bobber.rotation * Vec3::new(0.0, 5.0, camera_z));
-            // + Vec3::new(0.0, -boat.thrust * 1.5, 0.0);
+        let camera_z = -15. + (camera.looking_up.value() * 14.99);
+        transform.translation =
+            camera.bobber.translation + (camera.bobber.rotation * Vec3::new(0.0, 5.0, camera_z));
+        // + Vec3::new(0.0, -boat.thrust * 1.5, 0.0);
 
-            let mut looking_at = camera.bobber.translation;
-            match camera.looking_up {
-                LookingUp::LookingUp(mut look) => {
-                    look += look + time.delta_seconds() * 0.5;
-                    look = look.min(1.);
-                    looking_at += Vec3::new(0., 100. * look, 0.);
-                    camera.looking_up = LookingUp::LookingUp(look);
-                }
-                LookingUp::LookingDown(mut look) => {
-                    look -= time.delta_seconds() * 2.5;
-                    look = look.max(0.);
-                    looking_at += Vec3::new(0., 100. * look, 0.);
-
-                    if look > 0. {
-                        camera.looking_up = LookingUp::LookingDown(look);
-                    } else {
-                        camera.looking_up = LookingUp::None;
-                    }
-                }
-                LookingUp::None => {}
+        let mut looking_at = camera.bobber.translation;
+        match camera.looking_up {
+            LookingUp::LookingUp(mut look) => {
+                look += look + time.delta_seconds() * 0.5;
+                look = look.min(1.);
+                looking_at += Vec3::new(0., 100. * look, 0.);
+                camera.looking_up = LookingUp::LookingUp(look);
             }
+            LookingUp::LookingDown(mut look) => {
+                look -= time.delta_seconds() * 2.5;
+                look = look.max(0.);
+                looking_at += Vec3::new(0., 100. * look, 0.);
 
-            transform.rotation = transform.looking_at(looking_at, Vec3::unit_y()).rotation;
-            for (_, mut sky_transform) in skydome_query.iter_mut() {
-                sky_transform.translation = transform.translation;
+                if look > 0. {
+                    camera.looking_up = LookingUp::LookingDown(look);
+                } else {
+                    camera.looking_up = LookingUp::None;
+                }
             }
+            LookingUp::None => {}
         }
+
+        transform.rotation = transform.looking_at(looking_at, Vec3::Y).rotation;
+        camera_transform_translation = transform.translation;
+    }
+
+    for (_, mut sky_transform) in querys.q2_mut().iter_mut() {
+        sky_transform.translation = camera_transform_translation;
     }
 }

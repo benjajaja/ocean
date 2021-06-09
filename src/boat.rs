@@ -1,5 +1,6 @@
 use super::water;
-use bevy::prelude::*;
+use crate::water::Water;
+use bevy::{prelude::*, utils::tracing::field::debug};
 
 pub struct PlayerBoat {
     pub thrust: f32,
@@ -17,14 +18,13 @@ pub struct MoveEvent {
     pub translation: Vec3,
 }
 
-const WATER_TRANSLATE_STEP: f32 = 20.;
 pub fn boat_physics_system(
     time: Res<Time>,
     mut boat_query: Query<(&mut PlayerBoat, &mut Transform)>,
-    mut water_transform_query: Query<(&mut water::Water, &mut Transform)>,
-    mut ev_move: ResMut<Events<MoveEvent>>,
+    water_query: Query<&Water>,
+    mut ev_move: EventWriter<MoveEvent>,
 ) {
-    if let Some((mut boat, mut boat_transform)) = boat_query.iter_mut().next() {
+    if let Ok((mut boat, mut boat_transform)) = boat_query.single_mut() {
         boat.world_rotation += -boat.steer * time.delta_seconds();
         let world_rotation_quat = Quat::from_rotation_y(boat.world_rotation);
 
@@ -33,66 +33,21 @@ pub fn boat_physics_system(
         let thrust_vector = Vec3::new(0., 0., speed);
         let jump = world_rotation_quat * thrust_vector;
 
-        let new_translation = boat_transform.translation + jump;
+        let mut new_translation = boat_transform.translation + jump;
 
         boat.speed = jump.length();
 
-        if let Some((water, mut water_transform)) = water_transform_query.iter_mut().next() {
-            // TODO: make weather_update_system
-            // water::set_waves(&mut water, weather.wave_intensity);
-            // water_material.wave1 = water.waves[0].to_vec4();
-            // water_material.wave2 = water.waves[1].to_vec4();
-            // water_material.wave3 = water.waves[2].to_vec4();
-
-            // move water plane along in steps to avoid vertex jither
-            water_transform.translation.x =
-                new_translation.x - new_translation.x % WATER_TRANSLATE_STEP;
-            water_transform.translation.z =
-                new_translation.z - new_translation.z % WATER_TRANSLATE_STEP;
+        if let Ok(water) = water_query.single() {
             let wavedata = water.wave_data_at_point(
                 Vec2::new(new_translation.x, new_translation.z),
                 time.seconds_since_startup() as f32 * water.wave_speed,
             );
+            new_translation.y = wavedata.position.y;
+            boat_transform.translation = new_translation;
 
-            if let Some((_origin, _radians, _t)) = boat.airborne {
-                // let tt = t + time.delta_seconds();
-                // let new_y =
-                // (origin.y + boat.speed * tt * radians.sin() - 0.5 * 9.81 * tt * tt) * -1.;
-                boat.airborne = None;
-                println!(
-                    "airborne ended {}/{}",
-                    wavedata.position.y, water_transform.translation.y
-                );
-            // water_transform.translation.y = new_y;
-            // if new_y > boat_transform.translation.y && wavedata.position.y >= -water_transform.translation.y {
-            // boat.airborne = None;
-            // println!("airborne ended {}/{}", wavedata.position.y, water_transform.translation.y);
-            // } else {
-            // boat.airborne = Some((origin, radians, tt));
-            } else {
-                let normal_quat = water::surface_quat(&wavedata);
-                let world_rotation = normal_quat * world_rotation_quat;
-
-                let forward_vec = world_rotation * Vec3::unit_z();
-                let cosine = normal_quat.dot(boat.last_normal);
-                boat.nose_angle = cosine;
-                boat.last_normal = normal_quat;
-
-                // "anchor" water plane at boat
-                water_transform.translation.y = -wavedata.position.y;
-
-                if forward_vec.y > 0. && boat.speed > 1.0 && false {
-                    // boat.nose_angle > PI / 8. {
-                    // boat.airborne = Some((forward_vec, boat.nose_angle, 0.));
-                    println!("airborne now");
-                    boat_transform.rotation = boat.last_normal * world_rotation_quat;
-                } else {
-                    boat_transform.rotation = normal_quat * world_rotation_quat;
-                }
-            }
+            let normal_quat = water::surface_quat(&wavedata);
+            boat_transform.rotation = normal_quat * world_rotation_quat;
         }
-
-        boat_transform.translation = new_translation;
 
         if jump.length() > 0. {
             ev_move.send(MoveEvent {

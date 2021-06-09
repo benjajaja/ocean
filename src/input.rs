@@ -2,11 +2,6 @@ use crate::boat;
 use crate::camera::{CameraTracker, LookingUp};
 use bevy::{input::mouse::MouseMotion, prelude::*};
 
-#[derive(Default)]
-pub struct State {
-    pub mouse_motion_event_reader: EventReader<MouseMotion>,
-}
-
 const INPUT_ACCEL: f32 = 10.0;
 const INPUT_DECAY: f32 = 10.0;
 const STEER_ACCEL: f32 = 10.0;
@@ -64,15 +59,14 @@ pub fn keyboard_input_system(
 }
 
 pub fn mouse_input_system(
-    mut state: Local<State>,
-    mouse_motion_events: Res<Events<MouseMotion>>,
+    mut mouse_motion_events: EventReader<MouseMotion>,
     mut camera_query: Query<&mut CameraTracker>,
 ) {
     if let Some(mut camera) = camera_query.iter_mut().next() {
-        for event in state.mouse_motion_event_reader.iter(&mouse_motion_events) {
+        for event in mouse_motion_events.iter() {
             camera.input_rotation = (camera.input_rotation
-                * Quat::from_axis_angle(Vec3::unit_y(), -event.delta.x * 0.001)
-                * Quat::from_axis_angle(Vec3::unit_x(), event.delta.y * 0.001))
+                * Quat::from_axis_angle(Vec3::Y, -event.delta.x * 0.001)
+                * Quat::from_axis_angle(Vec3::X, event.delta.y * 0.001))
             .normalize();
         }
     }

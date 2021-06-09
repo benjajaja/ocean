@@ -1,30 +1,30 @@
 #version 450
 // from: https://gitlab.com/TheZoq2/i_sjon_kan_ingen_hora_dig_skrika
 layout(location = 0) in vec3 Vertex_Position;
-/* layout(location = 1) in vec3 Vertex_Normal; */
+layout(location = 1) in vec2 Vertex_Uv;
+layout(location = 0) out vec2 v_Uv;
 
-layout(location=1) out vec3 Vertex_Normal;
-layout(location=2) out vec4 World_Position;
-layout(location=3) out vec3 o_Vertex_Position;
+layout(location = 1) out vec3 Vertex_Normal;
+layout(location = 2) out vec4 World_Position;
+layout(location = 3) out vec3 o_Vertex_Position;
 
-
-layout(set = 0, binding = 0) uniform Camera {
+layout(set = 0, binding = 0) uniform CameraViewProj {
     mat4 ViewProj;
 };
 layout(set = 1, binding = 0) uniform Transform {
     mat4 Model;
 };
-layout(set = 2, binding = 0) uniform WaterMaterial_time {
+layout(set = 2, binding = 0) uniform WaterUniform_time {
     float time;
 };
 /* color, camera ignored */
-layout(set = 2, binding = 3) uniform WaterMaterial_wave1 {
+layout(set = 2, binding = 3) uniform WaterUniform_wave1 {
     vec4 wave1;
 };
-layout(set = 2, binding = 4) uniform WaterMaterial_wave2 {
+layout(set = 2, binding = 4) uniform WaterUniform_wave2 {
     vec4 wave2;
 };
-layout(set = 2, binding = 5) uniform WaterMaterial_wave3 {
+layout(set = 2, binding = 5) uniform WaterUniform_wave3 {
     vec4 wave3;
 };
 

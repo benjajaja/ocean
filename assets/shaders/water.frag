@@ -1,20 +1,21 @@
 #version 450
 
-layout(set = 2, binding = 0) uniform WaterMaterial_time {
+layout(set = 2, binding = 0) uniform WaterUniform_time {
     float time;
 };
-layout(set = 2, binding = 1) uniform WaterMaterial_color {
+layout(set = 2, binding = 1) uniform WaterUniform_color {
     vec3 color;
 };
-layout(set = 2, binding = 2) uniform WaterMaterial_camera {
+layout(set = 2, binding = 2) uniform WaterUniform_camera {
     vec3 camera;
 };
 
-layout(location=1) in vec3 Vertex_Normal;
-layout(location=2) in vec4 World_Position;
-layout(location=3) in vec3 o_Vertex_Position;
+layout(location = 0) in vec2 v_Uv;
+layout(location = 1) in vec3 Vertex_Normal;
+layout(location = 2) in vec4 World_Position;
+layout(location = 3) in vec3 o_Vertex_Position;
 
-layout(location=0) out vec4 o_Target;
+layout(location = 0) out vec4 o_Target;
 
 
 const vec3 light_direction = normalize(vec3(0.5, 1, 0.5));

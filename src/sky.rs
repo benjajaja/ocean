@@ -10,7 +10,6 @@ use bevy::{
         shader::ShaderStages,
     },
 };
-use bevy_prototype_debug_lines::*;
 use std::f32::consts::FRAC_PI_2;
 
 pub struct SkyDomeLayer {
@@ -25,7 +24,7 @@ pub struct SkyDome {
 impl SkyDome {
     pub fn new() -> Self {
         SkyDome {
-            rotation: Quat::identity(),
+            rotation: Quat::IDENTITY,
             locked_island: false,
         }
     }
@@ -47,8 +46,8 @@ pub const FORWARD_PIPELINE_HANDLE: HandleUntyped =
     HandleUntyped::weak_from_u64(PipelineDescriptor::TYPE_UUID, 13148362314012771389);
 
 pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
-    app.add_resource(ClearColor(Color::rgb(0., 0., 0.)));
-    app.add_resource(SkyDome::new());
+    app.insert_resource(ClearColor(Color::rgb(0., 0., 0.)));
+    app.insert_resource(SkyDome::new());
 
     app.add_startup_system(spawn_sky.system());
     app.add_system(skydome_system.system());
@@ -56,7 +55,7 @@ pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::A
 }
 
 pub fn spawn_sky(
-    commands: &mut Commands,
+    mut commands: Commands,
     mut pipelines: ResMut<Assets<PipelineDescriptor>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -69,26 +68,30 @@ pub fn spawn_sky(
     let texture_handle_islands: Handle<Texture> = asset_server.load("palmtree_sky.png");
 
     let sky_material = materials.add(StandardMaterial {
-        albedo: Color::WHITE,
-        albedo_texture: Some(texture_handle),
-        shaded: false,
+        base_color_texture: Some(texture_handle),
+        // albedo: Color::WHITE,
+        // albedo_texture: Some(texture_handle),
+        // shaded: false,
+        ..Default::default()
     });
 
     let sky_material_islands = materials.add(StandardMaterial {
-        albedo: Color::WHITE,
-        albedo_texture: Some(texture_handle_islands),
-        shaded: false,
+        base_color_texture: Some(texture_handle_islands),
+        // albedo: Color::WHITE,
+        // albedo_texture: Some(texture_handle_islands),
+        // shaded: false,
+        ..Default::default()
     });
 
     commands
-        .spawn(PbrBundle {
+        .spawn_bundle(PbrBundle {
             mesh: meshes.add(stripe::bg_stars()),
             render_pipelines: render_pipelines.clone(),
             transform: Transform::from_scale(Vec3::splat(100.0)),
             ..Default::default()
         })
-        .with(sky_material)
-        .with(SkyDomeLayer {
+        .insert(sky_material)
+        .insert(SkyDomeLayer {
             daytime: DayTime::Night,
         });
 
@@ -119,19 +122,19 @@ pub fn spawn_sky(
         })
         .collect();
     commands
-        .spawn(PbrBundle {
+        .spawn_bundle(PbrBundle {
             mesh: meshes.add(stripe::island_stars(island_stars)),
             render_pipelines: render_pipelines.clone(),
             transform: Transform::from_scale(Vec3::splat(100.0)),
             ..Default::default()
         })
-        .with(sky_material_islands)
-        .with(SkyDomeLayer {
+        .insert(sky_material_islands)
+        .insert(SkyDomeLayer {
             daytime: DayTime::Night,
         });
 
     for island in islands {
-        commands.spawn((island,));
+        commands.spawn_bundle((island,));
     }
 
     // commands
@@ -159,15 +162,12 @@ fn sky_pipelines(
         vertex: forward_pipeline_handle.shader_stages.vertex.clone(),
         fragment: forward_pipeline_handle.shader_stages.fragment.clone(),
     });
-    descriptor.depth_stencil_state =
-        descriptor
-            .depth_stencil_state
-            .map(|mut depth_stencil_state| {
-                depth_stencil_state.depth_compare =
-                    bevy::render::pipeline::CompareFunction::LessEqual;
-                depth_stencil_state.depth_write_enabled = false;
-                depth_stencil_state
-            });
+
+    descriptor.depth_stencil = descriptor.depth_stencil.map(|mut depth_stencil| {
+        depth_stencil.depth_compare = bevy::render::pipeline::CompareFunction::LessEqual;
+        depth_stencil.depth_write_enabled = false;
+        depth_stencil
+    });
 
     let sky_pipeline_handle = pipelines.add(descriptor);
     render_graph.add_system_node(
@@ -182,28 +182,29 @@ fn sky_pipelines(
 }
 
 pub fn skydome_system(
-    events: Res<Events<super::boat::MoveEvent>>,
-    mut event_reader: Local<EventReader<super::boat::MoveEvent>>,
+    mut events: EventReader<super::boat::MoveEvent>,
     state: Res<InGameState>,
     mut skydome: ResMut<SkyDome>,
-    mut skydome_query: Query<(&SkyDomeLayer, &mut Transform, &mut Visible)>,
+    mut skydome_query: Query<
+        (&SkyDomeLayer, &mut Transform, &mut Visible),
+        Without<super::WorldIsland>,
+    >,
     island_query: Query<&SkyDomeIsland>,
-    mut ev_approach: ResMut<Events<super::NavigationEvent>>,
-    worldisland_query: Query<(&super::WorldIsland, &Transform)>,
+    mut ev_approach: EventWriter<super::NavigationEvent>,
+    worldisland_query: Query<(&super::WorldIsland, &Transform), Without<SkyDomeLayer>>,
     mut clear_color: ResMut<ClearColor>,
     mut weather: ResMut<super::water::Weather>,
-    mut lines: ResMut<DebugLines>,
 ) {
-    for ev in event_reader.iter(&events) {
+    for ev in events.iter() {
         let translation = ev.translation;
 
         match state.time {
             DayTime::Night => {
                 skydome.rotation = (jump_skydome(ev.jump) * skydome.rotation).normalize();
 
-                let sky_vec = Vec3::unit_y();
+                let sky_vec = Vec3::Y;
                 for island in island_query.iter() {
-                    let island_vec = (skydome.rotation * island.rotation) * Vec3::unit_y();
+                    let island_vec = (skydome.rotation * island.rotation) * Vec3::Y;
                     let angle = island_vec.dot(sky_vec);
 
                     if angle > 0.99 {
@@ -227,8 +228,8 @@ pub fn skydome_system(
                         let distance_frac = 1. - (distance / 700.);
                         ev_approach.send(super::NavigationEvent::Approach(distance_frac));
 
-                        let value = ((distance_frac - 0.1).max(0.) * 10.).min(1.0);
-                        println!("approach value {} (dist. {})", value, distance_frac);
+                        let value = ((distance_frac - 0.1).max(0.) * 10.).min(0.75);
+                        // println!("approach value {} (dist. {})", value, distance_frac);
                         clear_color.0 = Color::rgb(value - 0.3, value - 0.2, value);
                         weather.wave_intensity = 1. - value;
 
