@@ -93,42 +93,5 @@ pub fn boat_physics_system(
                 translation: boat_transform.translation,
             });
         }
-        return;
-        boat.world_rotation += -boat.steer * time.delta_seconds();
-        let world_rotation_quat = Quat::from_rotation_y(boat.world_rotation);
-
-        boat.speed =
-            (boat.speed + (boat.throttle * 2. - 1.) * time.delta_seconds() * 1.).clamp(0., 1.);
-        // + boat.throttle * boat.nose_angle.abs();
-        let thrust_vector = Vec3::new(0., 0., boat.speed);
-        let mut jump = boat_transform.rotation * thrust_vector;
-        jump.y = 0.;
-
-        let mut new_translation = boat_transform.translation + jump;
-
-        if let Ok(water) = water_query.single() {
-            let wavedata = water.wave_data_at_point(
-                Vec2::new(new_translation.x, new_translation.z),
-                time.seconds_since_startup() as f32 * water.wave_speed,
-            );
-            new_translation.y = wavedata.position.y * (1. - boat.speed.clamp(0., 1.))
-                + boat.speed.clamp(0., 1.) * 4.;
-
-            // + boat.speed.clamp(0., 2.) * 3.;
-            boat_transform.translation = new_translation;
-
-            let normal_quat = water::surface_quat(&wavedata);
-            boat_transform.rotation = boat_transform.rotation.slerp(
-                normal_quat.lerp(Quat::IDENTITY, boat.speed.clamp(0., 1.)) * world_rotation_quat,
-                time.delta_seconds() * 2.,
-            );
-        }
-
-        if jump.length() > 0. {
-            ev_move.send(MoveEvent {
-                jump,
-                translation: boat_transform.translation,
-            });
-        }
     }
 }

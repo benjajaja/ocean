@@ -1,6 +1,5 @@
 use crate::boat::PlayerBoat;
 
-use super::boat;
 use bevy::{
     prelude::*,
     reflect::TypeUuid,
@@ -23,6 +22,7 @@ pub struct Water {
     pub wave_speed: f32,
 }
 impl Water {
+    #[allow(dead_code)]
     pub fn height_at_point(self: &Self, point: Vec2, time: f32) -> f32 {
         let input_point = Vec3::new(point.x, 0., point.y);
 

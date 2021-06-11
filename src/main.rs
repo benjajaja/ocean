@@ -1,4 +1,9 @@
-use bevy::{pbr::AmbientLight, prelude::*};
+use bevy::{
+    pbr::AmbientLight,
+    prelude::*,
+    render::wireframe::{Wireframe, WireframePlugin},
+    wgpu::{WgpuFeature, WgpuFeatures, WgpuOptions},
+};
 use core::f32::consts::{FRAC_PI_4, PI};
 mod boat;
 use boat::{BoatJet, PlayerBoat};
@@ -45,9 +50,17 @@ fn main() {
         cursor_visible: false,
         ..Default::default()
     });
+    app.insert_resource(WgpuOptions {
+        features: WgpuFeatures {
+            // The Wireframe requires NonFillPolygonMode feature
+            features: vec![WgpuFeature::NonFillPolygonMode],
+        },
+        ..Default::default()
+    });
 
-    app.insert_resource(Msaa { samples: 4 })
-        .add_plugins(DefaultPlugins);
+    app.insert_resource(Msaa { samples: 4 });
+    app.add_plugins(DefaultPlugins);
+    app.add_plugin(WireframePlugin);
 
     app.add_state(AppState::InGame);
     app.add_event::<NavigationEvent>();
@@ -104,6 +117,7 @@ fn setup(
             world_rotation: PI / 4.,
             ..Default::default()
         });
+    // .insert(Wireframe);
 
     commands
         .spawn_bundle(PbrBundle {
@@ -190,6 +204,7 @@ pub enum NavigationEvent {
 }
 
 pub struct WorldIsland {
+    #[allow(dead_code)]
     island: Island,
     sky_rotation: Quat,
 }
@@ -227,7 +242,7 @@ fn island_enter_leave(
                     println!("enter at day?");
                 }
             },
-            NavigationEvent::Approach(distance) => match state.time {
+            NavigationEvent::Approach(_distance) => match state.time {
                 DayTime::Day => {}
                 DayTime::Night => {
                     panic!("approach at night");

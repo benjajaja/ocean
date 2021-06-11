@@ -20,7 +20,7 @@ fn spawn_ui(
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let font = asset_server.load("fonts/VCR_OSD_MONO_1.001.ttf");
-    let font_size = 32.;
+    let font_size = 10.;
 
     commands.spawn_bundle(UiCameraBundle::default());
 
@@ -50,7 +50,7 @@ fn spawn_ui(
                                 value: "FPS: ".to_string(),
                                 style: TextStyle {
                                     font: font.clone(),
-                                    font_size: 10.0,
+                                    font_size,
                                     color: Color::WHITE,
                                 },
                             },
@@ -58,7 +58,7 @@ fn spawn_ui(
                                 value: "".to_string(),
                                 style: TextStyle {
                                     font: font.clone(),
-                                    font_size: 10.0,
+                                    font_size,
                                     color: Color::GOLD,
                                 },
                             },
@@ -96,7 +96,7 @@ fn spawn_ui(
                                 value: "Throttle: ".to_string(),
                                 style: TextStyle {
                                     font: font.clone(),
-                                    font_size: 10.0,
+                                    font_size,
                                     color: Color::WHITE,
                                 },
                             },
@@ -104,7 +104,7 @@ fn spawn_ui(
                                 value: "".to_string(),
                                 style: TextStyle {
                                     font: font.clone(),
-                                    font_size: 10.0,
+                                    font_size,
                                     color: Color::GOLD,
                                 },
                             },
@@ -112,7 +112,7 @@ fn spawn_ui(
                                 value: " Speed: ".to_string(),
                                 style: TextStyle {
                                     font: font.clone(),
-                                    font_size: 10.0,
+                                    font_size,
                                     color: Color::WHITE,
                                 },
                             },
@@ -120,7 +120,7 @@ fn spawn_ui(
                                 value: "".to_string(),
                                 style: TextStyle {
                                     font: font.clone(),
-                                    font_size: 10.0,
+                                    font_size,
                                     color: Color::RED,
                                 },
                             },
@@ -131,103 +131,11 @@ fn spawn_ui(
                 })
                 .insert(BoatHUDText);
         });
-
-    // commands
-    // .spawn(NodeBundle {
-    // style: Style {
-    // size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
-    // justify_content: JustifyContent::SpaceBetween,
-    // flex_direction: FlexDirection::Column,
-    // border: Rect::all(Val::Px(2.0)),
-    // ..Default::default()
-    // },
-    // material: materials.add(Color::NONE.into()),
-    // ..Default::default()
-    // })
-    // .with_children(|parent| {
-    // parent
-    // .spawn(NodeBundle {
-    // style: Style {
-    // justify_content: JustifyContent::SpaceBetween,
-    // padding: Rect::all(Val::Px(5.0)),
-    // ..Default::default()
-    // },
-    // material: materials.add(Color::NONE.into()),
-    // ..Default::default()
-    // })
-    // .with_children(|parent| {
-    // parent
-    // .spawn(TextBundle {
-    // style: Style {
-    // align_self: AlignSelf::FlexStart,
-    // ..Default::default()
-    // },
-    // text: Text {
-    // value: "###".to_string(),
-    // font: font.clone(),
-    // style: TextStyle {
-    // font_size,
-    // color: Color::RED,
-    // ..Default::default()
-    // },
-    // },
-    // ..Default::default()
-    // })
-    // .spawn(TextBundle {
-    // style: Style {
-    // align_self: AlignSelf::FlexEnd,
-    // ..Default::default()
-    // },
-    // text: Text {
-    // value: "0.00speed 0.00att".to_string(),
-    // font: font.clone(),
-    // style: TextStyle {
-    // font_size,
-    // color: Color::GRAY,
-    // ..Default::default()
-    // },
-    // },
-    // ..Default::default()
-    // })
-    // .with(BoatHUDText);
-    // })
-    // .spawn(NodeBundle {
-    // style: Style {
-    // justify_content: JustifyContent::SpaceBetween,
-    // align_items: AlignItems::Center,
-    // border: Rect::all(Val::Px(2.0)),
-    // ..Default::default()
-    // },
-    // material: materials.add(Color::NONE.into()),
-    // ..Default::default()
-    // })
-    // .with_children(|parent| {
-    // parent
-    // .spawn(TextBundle {
-    // style: Style {
-    // ..Default::default()
-    // },
-    // text: Text {
-    // value: "FPS: ...".to_string(),
-    // font: font.clone(),
-    // style: TextStyle {
-    // font_size,
-    // color: Color::WHITE,
-    // ..Default::default()
-    // },
-    // },
-    // ..Default::default()
-    // })
-    // .with(FpsText);
-    // });
-    // });
 }
 
 fn text_update_fps_system(
     diagnostics: Res<Diagnostics>,
     mut fps_query: Query<&mut Text, With<FpsText>>,
-    // mut boat_hud_query: Query<&mut Text, With<BoatHUDText>>,
-    // boat_query: Query<&boat::PlayerBoat>,
 ) {
     for mut text in fps_query.iter_mut() {
         if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
