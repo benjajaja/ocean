@@ -22,6 +22,7 @@ impl LookingUp {
     }
 }
 
+const CAMERA_ROTATION_FACTOR: f32 = 10.0;
 pub fn camera_system(
     time: Res<Time>,
     mut camera_query: Query<
@@ -32,8 +33,22 @@ pub fn camera_system(
         (&SkyDomeLayer, &mut Transform),
         (Without<PlayerBoat>, Without<CameraTracker>),
     >,
+    mut boat_query: Query<(&mut PlayerBoat, &mut Transform), Without<CameraTracker>>,
 ) {
     if let Ok((mut camera, mut camera_transform)) = camera_query.single_mut() {
+        if let Ok((boat, boat_transform)) = boat_query.single_mut() {
+            camera.bobber.translation.x = boat_transform.translation.x;
+            camera.bobber.translation.z = boat_transform.translation.z;
+            camera.bobber.rotation = camera.bobber.rotation.slerp(
+                Quat::from_axis_angle(Vec3::Y, boat.world_rotation).normalize()
+                    * camera.input_rotation,
+                time.delta_seconds() * CAMERA_ROTATION_FACTOR,
+            );
+        }
+
+        let camera_z = -15. + (camera.looking_up.value() * 14.99);
+        camera_transform.translation =
+            camera.bobber.translation + (camera.bobber.rotation * Vec3::new(0.0, 5.0, camera_z));
         let mut looking_at = camera.bobber.translation;
         match camera.looking_up {
             LookingUp::LookingUp(mut look) => {

@@ -93,8 +93,8 @@ pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::A
             wave_intensity: 1.0,
         })
         .add_startup_system(setup.system())
-        .add_system(update_system.system())
-    // .add_system(wave_probe_system.system())
+        .add_system(update_system.system().label("water").after("physics"))
+        .add_system(wave_probe_system.system().label("water").after("physics"))
 }
 
 fn setup(
@@ -270,8 +270,8 @@ pub fn surface_quat(wavedata: &WaveData) -> Quat {
 
 pub fn wave_probe_system(
     time: Res<Time>,
-    mut wave_probes_query: Query<(&Swimmer, &mut Transform)>,
-    water_query: Query<(&Water, &Transform)>,
+    mut wave_probes_query: Query<(&Swimmer, &mut Transform), Without<Water>>,
+    water_query: Query<(&Water, &Transform), Without<Swimmer>>,
 ) {
     if let Some((water, water_transform)) = water_query.iter().next() {
         for (swimmer, mut transform) in wave_probes_query.iter_mut() {
@@ -293,11 +293,6 @@ fn update_system(
     weather: Res<Weather>,
     mut water_mats: ResMut<Assets<WaterUniform>>,
     mut water_material_query: Query<&Handle<WaterUniform>>,
-    // mut querys: QuerySet<(
-    // Query<(&mut Water, &mut Transform)>,
-    // Query<(&mut PlayerBoat, &mut Transform)>,
-    // Query<(&WaterCamera, &Transform)>,
-    // )>,
     mut water_query: Query<(&mut Water, &mut Transform), Without<PlayerBoat>>,
     boat_query: Query<(&PlayerBoat, &Transform), Without<Water>>,
     camera_query: Query<(&WaterCamera, &Transform), Without<Water>>,

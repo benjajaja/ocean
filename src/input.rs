@@ -2,8 +2,8 @@ use crate::boat;
 use crate::camera::{CameraTracker, LookingUp};
 use bevy::{input::mouse::MouseMotion, prelude::*};
 
-const INPUT_ACCEL: f32 = 2.0;
-const INPUT_DECAY: f32 = 10.0;
+const INPUT_ACCEL: f32 = 1.0;
+const INPUT_DECAY: f32 = 4.0;
 const STEER_ACCEL: f32 = 10.0;
 const BOAT_MAX_THRUST: f32 = 1.0;
 
@@ -15,20 +15,20 @@ pub fn keyboard_input_system(
 ) {
     for mut boat in &mut boat_query.iter_mut() {
         if keyboard_input.pressed(KeyCode::W) {
-            if boat.thrust < BOAT_MAX_THRUST {
-                boat.thrust =
-                    (boat.thrust + INPUT_ACCEL * time.delta_seconds()).min(BOAT_MAX_THRUST);
+            if boat.throttle < BOAT_MAX_THRUST {
+                boat.throttle =
+                    (boat.throttle + INPUT_ACCEL * time.delta_seconds()).min(BOAT_MAX_THRUST);
             }
-        } else if boat.thrust > 0.0 {
-            boat.thrust = (boat.thrust - INPUT_DECAY * time.delta_seconds()).max(0.0);
+        } else if boat.throttle > 0.0 {
+            boat.throttle = (boat.throttle - INPUT_DECAY * time.delta_seconds()).max(0.0);
         }
         if keyboard_input.pressed(KeyCode::S) {
-            if boat.thrust > -BOAT_MAX_THRUST {
-                boat.thrust =
-                    (boat.thrust - INPUT_ACCEL * time.delta_seconds()).max(-BOAT_MAX_THRUST);
+            if boat.throttle > -BOAT_MAX_THRUST / 2. {
+                boat.throttle =
+                    (boat.throttle - INPUT_ACCEL * time.delta_seconds()).max(-BOAT_MAX_THRUST);
             }
-        } else if boat.thrust < 0.0 {
-            boat.thrust = (boat.thrust + INPUT_DECAY * time.delta_seconds()).max(0.0);
+        } else if boat.throttle < 0.0 {
+            boat.throttle = (boat.throttle + INPUT_DECAY * time.delta_seconds()).max(0.0);
         }
 
         if keyboard_input.pressed(KeyCode::A) {

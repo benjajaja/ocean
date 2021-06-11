@@ -1,10 +1,11 @@
 use bevy::{pbr::AmbientLight, prelude::*};
-use std::f32::consts::PI;
+use core::f32::consts::{FRAC_PI_4, PI};
 mod boat;
-use boat::PlayerBoat;
+use boat::{BoatJet, PlayerBoat};
 mod camera;
 mod input;
 use camera::CameraTracker;
+
 mod sky;
 mod stripe;
 mod ui;
@@ -36,6 +37,15 @@ pub enum Island {
 
 fn main() {
     let mut app = App::build();
+    app.insert_resource(WindowDescriptor {
+        width: 500.,
+        height: 300.,
+        scale_factor_override: Some(2.),
+        // cursor_locked: true,
+        cursor_visible: false,
+        ..Default::default()
+    });
+
     app.insert_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins);
 
@@ -50,11 +60,21 @@ fn main() {
     app.add_startup_system(setup.system());
 
     app.add_system(bevy::input::system::exit_on_esc_system.system())
-        .add_system(input::keyboard_input_system.system())
-        .add_system(input::mouse_input_system.system())
-        .add_system(boat::boat_physics_system.system())
-        .add_system(island_enter_leave.system())
-        .add_system(camera::camera_system.system());
+        .add_system(input::keyboard_input_system.system().label("input"))
+        .add_system(input::mouse_input_system.system().label("input"))
+        .add_system(
+            boat::boat_physics_system
+                .system()
+                .label("physics")
+                .after("input"),
+        )
+        .add_system(
+            camera::camera_system
+                .system()
+                .label("camera")
+                .after("physics"),
+        )
+        .add_system(island_enter_leave.system());
 
     sky::add_systems(&mut app);
     water::add_systems(&mut app);
@@ -119,13 +139,31 @@ fn setup(
             ..Default::default()
         })
         .insert(PlayerBoat {
-            thrust: 0.,
+            throttle: 0.,
             steer: 0.,
-            world_rotation: 0.,
+            velocity: Vec3::Z,
             speed: 0.,
+            world_rotation: 0.,
             last_normal: Quat::IDENTITY,
             nose_angle: 0.,
             airborne: None,
+        })
+        .with_children(|parent| {
+            parent
+                .spawn_bundle(PbrBundle {
+                    transform: Transform::from_translation(Vec3::new(0., 0.5, -4.)),
+                    ..Default::default()
+                })
+                .insert(BoatJet)
+                .with_children(|parent| {
+                    parent.spawn_bundle(PbrBundle {
+                        mesh: meshes.add(Mesh::from(shape::Box::new(0.5, 0.5, 1.))),
+                        material: materials.add(Color::rgb(0.8, 0.2, 0.6).into()),
+                        transform: Transform::from_translation(Vec3::new(0., 0., -0.5))
+                            * Transform::from_rotation(Quat::from_rotation_z(FRAC_PI_4)),
+                        ..Default::default()
+                    });
+                });
         });
 
     commands

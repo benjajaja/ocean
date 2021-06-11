@@ -93,7 +93,7 @@ fn spawn_ui(
                         // Construct a `Vec` of `TextSection`s
                         sections: vec![
                             TextSection {
-                                value: "Thrust: ".to_string(),
+                                value: "Throttle: ".to_string(),
                                 style: TextStyle {
                                     font: font.clone(),
                                     font_size: 10.0,
@@ -244,7 +244,7 @@ fn text_update_hud_system(
 ) {
     for mut text in hud_query.iter_mut() {
         if let Ok(boat) = boat_query.single() {
-            text.sections[1].value = format!("{:.2}", boat.thrust);
+            text.sections[1].value = format!("{:.2}", boat.throttle);
             text.sections[3].value = format!("{:.2}", boat.speed);
         }
     }
