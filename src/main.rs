@@ -4,6 +4,7 @@ use bevy::{
     render::wireframe::WireframePlugin,
     wgpu::{WgpuFeature, WgpuFeatures, WgpuOptions},
 };
+use bevy_egui::EguiPlugin;
 use core::f32::consts::PI;
 mod boat;
 mod camera;
@@ -16,9 +17,9 @@ mod ui;
 mod water;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-enum AppState {
-    // Menu,
+pub enum AppState {
     InGame,
+    Menu,
 }
 
 #[derive(Debug, PartialEq)]
@@ -60,6 +61,7 @@ fn main() {
     app.insert_resource(Msaa { samples: 4 });
     app.add_plugins(DefaultPlugins);
     app.add_plugin(WireframePlugin);
+    app.add_plugin(EguiPlugin);
 
     app.add_state(AppState::InGame);
     app.add_event::<NavigationEvent>();
@@ -71,16 +73,15 @@ fn main() {
 
     app.add_startup_system(setup.system());
 
-    app.add_system(bevy::input::system::exit_on_esc_system.system())
-        .add_system(input::keyboard_input_system.system().label("input"))
-        .add_system(input::mouse_input_system.system().label("input"))
-        .add_system(
-            camera::camera_system
-                .system()
-                .label("camera")
-                .after("physics"),
-        )
-        .add_system(island_enter_leave.system());
+    input::add_systems(&mut app);
+
+    app.add_system(
+        camera::camera_system
+            .system()
+            .label("camera")
+            .after("physics"),
+    )
+    .add_system(island_enter_leave.system());
 
     boat::add_systems(&mut app);
     sky::add_systems(&mut app);

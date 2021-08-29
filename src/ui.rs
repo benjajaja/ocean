@@ -1,8 +1,11 @@
 use crate::boat;
+use crate::AppState;
 use bevy::{
     diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
     prelude::*,
 };
+use bevy_egui::egui::Align2;
+use bevy_egui::{egui, EguiContext};
 
 struct FpsText;
 struct BoatHUDText;
@@ -11,7 +14,10 @@ pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::A
     app.add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_startup_system(spawn_ui.system())
         .add_system(text_update_fps_system.system())
-        .add_system(text_update_hud_system.system())
+        .add_system(text_update_hud_system.system());
+
+    app.add_system_set(SystemSet::on_update(AppState::Menu).with_system(ui_example.system()));
+    app
 }
 
 fn spawn_ui(
@@ -156,4 +162,17 @@ fn text_update_hud_system(
             text.sections[3].value = format!("{:.2}", boat.speed);
         }
     }
+}
+
+// Note the usage of `ResMut`. Even though `ctx` method doesn't require
+// mutability, accessing the context from different threads will result
+// into panic if you don't enable `egui/multi_threaded` feature.
+fn ui_example(egui_context: ResMut<EguiContext>) {
+    egui::Window::new("Storage")
+        .collapsible(false)
+        .resizable(false)
+        .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
+        .show(egui_context.ctx(), |ui| {
+            ui.label("Pharaoh");
+        });
 }
