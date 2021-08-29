@@ -1,5 +1,6 @@
 use super::water;
 use crate::water::Water;
+use crate::AppState;
 use bevy::prelude::*;
 use core::f32::consts::FRAC_PI_4;
 
@@ -35,11 +36,13 @@ fn paddle_transform() -> Transform {
 }
 
 pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
-    app.add_startup_system(boat_startup_system.system());
-    // must run after input to avoid some jankiness
-    app.add_system(boat_physics_system.system().label("physics").after("input"));
-    app.add_system(boat_exhaust_system.system());
-    app
+    app.add_startup_system(boat_startup_system.system())
+        // must run after input to avoid some jankiness
+        .add_system_set(
+            SystemSet::on_update(AppState::InGame)
+                .with_system(boat_physics_system.system().label("physics").after("input"))
+                .with_system(boat_exhaust_system.system()),
+        )
 }
 
 fn boat_startup_system(

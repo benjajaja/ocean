@@ -10,28 +10,31 @@ const BOAT_MAX_THRUST: f32 = 1.0;
 
 pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
     app.add_system(bevy::input::system::exit_on_esc_system.system())
-        .add_system(keyboard_input_system.system().label("input"))
-        .add_system(mouse_input_system.system().label("input"))
+        .add_system_set(
+            SystemSet::on_update(AppState::InGame)
+                .with_system(ingame_keyboard_input_system.system().label("input"))
+                .with_system(mouse_input_system.system().label("input")),
+        )
+        .add_system_set(
+            SystemSet::on_update(AppState::Menu)
+                .with_system(menu_keyboard_input_system.system().label("input")),
+        )
 }
 
-pub fn keyboard_input_system(
+pub fn ingame_keyboard_input_system(
     time: Res<Time>,
-    keyboard_input: Res<Input<KeyCode>>,
+    mut keyboard_input: ResMut<Input<KeyCode>>,
     mut boat_query: Query<&mut boat::PlayerBoat>,
     mut camera_query: Query<(&mut Transform, &mut CameraTracker)>,
     mut state: ResMut<State<AppState>>,
     mut windows: ResMut<Windows>,
 ) {
     if keyboard_input.just_pressed(KeyCode::E) {
-        let window = windows.get_primary_mut().unwrap();
-        if state.current().to_owned() == AppState::InGame {
-            state.set(AppState::Menu).unwrap();
+        if let Ok(_) = state.set(AppState::Menu) {
+            let window = windows.get_primary_mut().unwrap();
             window.set_cursor_visibility(true);
-        } else {
-            state.set(AppState::InGame).unwrap();
-            window.set_cursor_visibility(false);
+            keyboard_input.reset(KeyCode::E);
         }
-        println!("Changed: {:?}", state.current());
     }
 
     for mut boat in &mut boat_query.iter_mut() {
@@ -75,6 +78,20 @@ pub fn keyboard_input_system(
             if let Some((_transform, mut camera)) = camera_query.iter_mut().next() {
                 camera.looking_up = LookingUp::LookingDown(camera.looking_up.value());
             }
+        }
+    }
+}
+
+pub fn menu_keyboard_input_system(
+    mut keyboard_input: ResMut<Input<KeyCode>>,
+    mut state: ResMut<State<AppState>>,
+    mut windows: ResMut<Windows>,
+) {
+    if keyboard_input.just_pressed(KeyCode::E) {
+        if let Ok(_) = state.set(AppState::InGame) {
+            let window = windows.get_primary_mut().unwrap();
+            window.set_cursor_visibility(false);
+            keyboard_input.reset(KeyCode::E);
         }
     }
 }

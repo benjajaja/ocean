@@ -1,4 +1,5 @@
-use crate::boat::PlayerBoat;
+pub(crate) use crate::boat::PlayerBoat;
+use crate::AppState;
 
 use bevy::{
     prelude::*,
@@ -93,8 +94,11 @@ pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::A
             wave_intensity: 1.0,
         })
         .add_startup_system(setup.system())
-        .add_system(update_system.system().label("water").after("physics"))
-        .add_system(wave_probe_system.system().label("water").after("physics"))
+        .add_system_set(
+            SystemSet::on_update(AppState::InGame)
+                .with_system(update_system.system().label("water").after("physics"))
+                .with_system(wave_probe_system.system().label("water").after("physics")),
+        )
 }
 
 fn setup(
