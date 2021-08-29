@@ -1,12 +1,11 @@
 use bevy::{
     pbr::AmbientLight,
     prelude::*,
-    render::wireframe::{Wireframe, WireframePlugin},
+    render::wireframe::WireframePlugin,
     wgpu::{WgpuFeature, WgpuFeatures, WgpuOptions},
 };
-use core::f32::consts::{FRAC_PI_4, PI};
+use core::f32::consts::PI;
 mod boat;
-use boat::{BoatJet, PlayerBoat};
 mod camera;
 mod input;
 use camera::CameraTracker;
@@ -76,12 +75,6 @@ fn main() {
         .add_system(input::keyboard_input_system.system().label("input"))
         .add_system(input::mouse_input_system.system().label("input"))
         .add_system(
-            boat::boat_physics_system
-                .system()
-                .label("physics")
-                .after("input"),
-        )
-        .add_system(
             camera::camera_system
                 .system()
                 .label("camera")
@@ -89,6 +82,7 @@ fn main() {
         )
         .add_system(island_enter_leave.system());
 
+    boat::add_systems(&mut app);
     sky::add_systems(&mut app);
     water::add_systems(&mut app);
     ui::add_systems(&mut app);
@@ -145,40 +139,6 @@ fn setup(
         transform: Transform::from_translation(Vec3::new(4.0, 50.0, 4.0)),
         ..Default::default()
     });
-
-    commands
-        .spawn_bundle(PbrBundle {
-            mesh: asset_server.load("correolas.glb#Mesh0/Primitive0"),
-            material: materials.add(Color::rgb(0.2, 0.8, 0.6).into()),
-            ..Default::default()
-        })
-        .insert(PlayerBoat {
-            throttle: 0.,
-            steer: 0.,
-            velocity: Vec3::Z,
-            speed: 0.,
-            world_rotation: 0.,
-            last_normal: Quat::IDENTITY,
-            nose_angle: 0.,
-            airborne: None,
-        })
-        .with_children(|parent| {
-            parent
-                .spawn_bundle(PbrBundle {
-                    transform: Transform::from_translation(Vec3::new(0., 0.5, -4.)),
-                    ..Default::default()
-                })
-                .insert(BoatJet)
-                .with_children(|parent| {
-                    parent.spawn_bundle(PbrBundle {
-                        mesh: meshes.add(Mesh::from(shape::Box::new(0.5, 0.5, 1.))),
-                        material: materials.add(Color::rgb(0.8, 0.2, 0.6).into()),
-                        transform: Transform::from_translation(Vec3::new(0., 0., -0.5))
-                            * Transform::from_rotation(Quat::from_rotation_z(FRAC_PI_4)),
-                        ..Default::default()
-                    });
-                });
-        });
 
     commands
         .spawn_bundle(PerspectiveCameraBundle {

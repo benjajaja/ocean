@@ -14,26 +14,96 @@ pub struct PlayerBoat {
     pub last_normal: Quat,
     pub nose_angle: f32,
     pub airborne: Option<(Vec3, f32, f32)>,
+
+    pub exhaust_last: f64,
 }
 
 pub struct BoatJet;
-// {
-// pub transform: Transform,
-// pub global_transform: GlobalTransform,
-// }
-// impl Default for BoatJet {
-// fn default() -> Self {
-// Self {
-// transform: Default::default(),
-// global_transform: Default::default(),
-// }
-// }
-// }
+
+pub struct BoatExhaustParticle {
+    free: bool,
+}
 
 #[derive(Debug)]
 pub struct MoveEvent {
     pub jump: Vec3,
     pub translation: Vec3,
+}
+
+fn paddle_transform() -> Transform {
+    Transform::from_translation(Vec3::new(0., 0.5, -4.))
+}
+
+pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
+    app.add_startup_system(boat_startup_system.system());
+    // must run after input to avoid some jankiness
+    app.add_system(boat_physics_system.system().label("physics").after("input"));
+    app.add_system(boat_exhaust_system.system());
+    app
+}
+
+fn boat_startup_system(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut materials_color: ResMut<Assets<ColorMaterial>>,
+    asset_server: Res<AssetServer>,
+) {
+    commands
+        .spawn_bundle(PbrBundle {
+            mesh: asset_server.load("correolas.glb#Mesh0/Primitive0"),
+            material: materials.add(Color::rgb(0.2, 0.8, 0.6).into()),
+            ..Default::default()
+        })
+        .insert(PlayerBoat {
+            throttle: 0.,
+            steer: 0.,
+            velocity: Vec3::Z,
+            speed: 0.,
+            world_rotation: 0.,
+            last_normal: Quat::IDENTITY,
+            nose_angle: 0.,
+            airborne: None,
+            exhaust_last: 0.,
+        })
+        .with_children(|parent| {
+            parent
+                .spawn_bundle(PbrBundle {
+                    transform: paddle_transform(),
+                    ..Default::default()
+                })
+                .insert(BoatJet)
+                .with_children(|parent| {
+                    parent.spawn_bundle(PbrBundle {
+                        mesh: meshes.add(Mesh::from(shape::Box::new(0.5, 0.5, 1.))),
+                        material: materials.add(Color::rgb(0.8, 0.2, 0.6).into()),
+                        transform: Transform::from_translation(Vec3::new(0., 0., -0.5))
+                            * Transform::from_rotation(Quat::from_rotation_z(FRAC_PI_4)),
+                        ..Default::default()
+                    });
+                });
+        });
+
+    let texture = asset_server.load("star.png");
+    for _ in 1..10 {
+        commands
+            .spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    size: Vec2::splat(0.01),
+                    ..Default::default()
+                },
+                material: materials_color.add(ColorMaterial {
+                    texture: Some(texture.clone()),
+                    ..Default::default()
+                }),
+                visible: Visible {
+                    is_visible: false,
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .insert(BoatExhaustParticle { free: true });
+    }
 }
 
 const DRAG: f32 = 0.2;
@@ -92,6 +162,44 @@ pub fn boat_physics_system(
                 jump,
                 translation: boat_transform.translation,
             });
+        }
+    }
+}
+
+pub fn boat_exhaust_system(
+    time: Res<Time>,
+    mut boat_query: Query<(&mut PlayerBoat, &Transform), Without<BoatExhaustParticle>>,
+    mut particale_query: Query<
+        (&mut BoatExhaustParticle, &mut Transform, &mut Visible),
+        Without<PlayerBoat>,
+    >,
+) {
+    if let Ok((mut boat, boat_transform)) = boat_query.single_mut() {
+        let now = time.seconds_since_startup();
+        if now - boat.exhaust_last > 0.1 {
+            for (mut particle, mut particle_transform, mut visible) in particale_query.iter_mut() {
+                if particle.free {
+                    particle.free = false;
+                    visible.is_visible = true;
+                    let mut transform = boat_transform.clone()
+                        * paddle_transform()
+                        * Transform::from_xyz(0., -1., 0.);
+                    transform.scale = Vec3::splat(0.01);
+                    particle_transform.clone_from(&transform);
+                    break;
+                }
+            }
+            boat.exhaust_last = now;
+        }
+    }
+
+    for (mut particle, mut transform, mut visible) in particale_query.iter_mut() {
+        if !particle.free {
+            transform.scale += Vec3::splat(-(time.delta_seconds() / 100.).clamp(0., 1.));
+            if transform.scale.x <= 0. {
+                visible.is_visible = false;
+                particle.free = true;
+            }
         }
     }
 }
