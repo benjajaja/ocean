@@ -11,6 +11,7 @@ mod camera;
 mod input;
 use camera::CameraTracker;
 
+mod atmosphere;
 mod sky;
 mod stripe;
 mod ui;
@@ -136,10 +137,10 @@ fn setup(
         })
         .insert(water::Swimmer::default());
 
-    commands.spawn_bundle(LightBundle {
-        transform: Transform::from_translation(Vec3::new(4.0, 50.0, 4.0)),
-        ..Default::default()
-    });
+    // commands.spawn_bundle(LightBundle {
+    // transform: Transform::from_translation(Vec3::new(4.0, 50.0, 4.0)),
+    // ..Default::default()
+    // });
 
     commands
         .spawn_bundle(PerspectiveCameraBundle {
@@ -175,7 +176,8 @@ fn island_enter_leave(
     mut event_reader: EventReader<NavigationEvent>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    // mut scene_spawner: ResMut<SceneSpawner>,
+    // mut materials: ResMut<Assets<StandardMaterial>>,
     worldisland_query: Query<(&WorldIsland, Entity)>,
 ) {
     for ev in event_reader.iter() {
@@ -188,16 +190,24 @@ fn island_enter_leave(
                     let mut palmtree_transform = Transform::from_translation(*translation);
 
                     palmtree_transform.scale = Vec3::new(4., 4., 4.);
-                    let palmtree = PbrBundle {
-                        mesh: asset_server.load("palmera.glb#Mesh3/Primitive0"),
-                        material: materials.add(Color::rgb(0.9, 0.9, 0.6).into()),
-                        transform: palmtree_transform,
-                        ..Default::default()
-                    };
-                    commands.spawn_bundle(palmtree).insert(WorldIsland {
-                        island: *island,
-                        sky_rotation: *sky_rotation,
-                    });
+                    // let palmtree = PbrBundle {
+                    // mesh: asset_server.load("palmera.glb#Mesh3/Primitive0"),
+                    // material: materials.add(Color::rgb(0.9, 0.9, 0.6).into()),
+                    // transform: palmtree_transform,
+                    // ..Default::default()
+                    // };
+                    let scene_handle = asset_server.load("palmera2.glb#Scene0");
+                    commands
+                        .spawn_bundle((palmtree_transform, GlobalTransform::identity()))
+                        .insert(WorldIsland {
+                            island: *island,
+                            sky_rotation: *sky_rotation,
+                        })
+                        .with_children(|parent| {
+                            parent.spawn_scene(scene_handle);
+                            // scene_spawner.spawn_as_child(scene_handle, parent.parent_entity());
+                            // scene_spawner.spawn_dynamic(scene_handle);
+                        });
                 }
                 DayTime::Day => {
                     println!("enter at day?");

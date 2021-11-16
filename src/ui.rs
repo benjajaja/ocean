@@ -4,7 +4,6 @@ use bevy::{
     diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
     prelude::*,
 };
-use bevy_egui::egui::Align2;
 use bevy_egui::{egui, EguiContext};
 
 struct FpsText;

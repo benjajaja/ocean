@@ -1,3 +1,4 @@
+use crate::atmosphere;
 use crate::stripe;
 use crate::DayTime;
 use crate::InGameState;
@@ -12,9 +13,8 @@ use bevy::{
 };
 use std::f32::consts::FRAC_PI_2;
 
-pub struct SkyDomeLayer {
-    pub daytime: DayTime,
-}
+pub struct SkyDomeLayer;
+pub struct SkyDomeLayerBg;
 
 pub struct SkyDome {
     pub rotation: Quat,
@@ -50,7 +50,16 @@ pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::A
     app.insert_resource(SkyDome::new());
 
     app.add_startup_system(spawn_sky.system());
+
+    app.insert_resource(atmosphere::AtmosphereMat {
+        sun_intensity: 1.0,
+        ..Default::default()
+    });
+    app.add_asset::<atmosphere::AtmosphereMat>();
+    app.add_startup_system(atmosphere_add_sky_sphere.system());
+
     app.add_system(skydome_system.system());
+
     app
 }
 
@@ -68,18 +77,9 @@ pub fn spawn_sky(
     let texture_handle_islands: Handle<Texture> = asset_server.load("palmtree_sky.png");
 
     let sky_material = materials.add(StandardMaterial {
+        base_color: Color::WHITE,
         base_color_texture: Some(texture_handle),
-        // albedo: Color::WHITE,
-        // albedo_texture: Some(texture_handle),
-        // shaded: false,
-        ..Default::default()
-    });
-
-    let sky_material_islands = materials.add(StandardMaterial {
-        base_color_texture: Some(texture_handle_islands),
-        // albedo: Color::WHITE,
-        // albedo_texture: Some(texture_handle_islands),
-        // shaded: false,
+        unlit: true,
         ..Default::default()
     });
 
@@ -91,9 +91,8 @@ pub fn spawn_sky(
             ..Default::default()
         })
         .insert(sky_material)
-        .insert(SkyDomeLayer {
-            daytime: DayTime::Night,
-        });
+        .insert(SkyDomeLayer {})
+        .insert(SkyDomeLayerBg);
 
     let islands = vec![
         // SkyDomeIsland::new(
@@ -114,6 +113,12 @@ pub fn spawn_sky(
         ),
     ];
 
+    let sky_material_islands = materials.add(StandardMaterial {
+        base_color_texture: Some(texture_handle_islands),
+        unlit: true,
+        ..Default::default()
+    });
+
     let island_stars: Vec<stripe::StarDef> = islands
         .iter()
         .map(|island| stripe::StarDef {
@@ -129,26 +134,12 @@ pub fn spawn_sky(
             ..Default::default()
         })
         .insert(sky_material_islands)
-        .insert(SkyDomeLayer {
-            daytime: DayTime::Night,
-        });
+        .insert(SkyDomeLayer {})
+        .insert(SkyDomeLayerBg {});
 
     for island in islands {
         commands.spawn_bundle((island,));
     }
-
-    // commands
-    // .spawn(PbrBundle {
-    // mesh: meshes.add(Mesh::from(shape::Icosphere {
-    // radius: -110.,
-    // subdivisions: 4,
-    // })),
-    // material: materials.add(Color::rgb(0.5, 0.9, 0.6).into()),
-    // ..Default::default()
-    // })
-    // .with(SkyDomeLayer {
-    // daytime: DayTime::Night,
-    // });
 }
 
 fn sky_pipelines(
@@ -303,4 +294,32 @@ fn jump_skydome(jump: Vec3) -> Quat {
     let rotation_axis = right_angle * jump;
     let rotation = Quat::from_axis_angle(rotation_axis, -jump.length() / 1000.);
     rotation
+}
+
+fn atmosphere_add_sky_sphere(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut sky_materials: ResMut<Assets<atmosphere::AtmosphereMat>>,
+    pipelines: ResMut<Assets<PipelineDescriptor>>,
+    shaders: ResMut<Assets<Shader>>,
+    render_graph: ResMut<RenderGraph>,
+) {
+    let render_pipelines = atmosphere::AtmosphereMat::pipeline(pipelines, shaders, render_graph);
+
+    let sky_material = atmosphere::AtmosphereMat::default();
+
+    let sky_material = sky_materials.add(sky_material);
+
+    commands
+        .spawn_bundle(MeshBundle {
+            mesh: meshes.add(Mesh::from(shape::Cube {
+                size: -10.0,
+                // radius: -10.0,
+                // subdivisions: 2,
+            })),
+            render_pipelines,
+            ..Default::default()
+        })
+        .insert(sky_material)
+        .insert(SkyDomeLayerBg {});
 }

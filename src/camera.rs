@@ -1,5 +1,5 @@
 use crate::boat::PlayerBoat;
-use crate::sky::SkyDomeLayer;
+use crate::sky::SkyDomeLayerBg;
 use bevy::prelude::*;
 
 pub struct CameraTracker {
@@ -27,10 +27,10 @@ pub fn camera_system(
     time: Res<Time>,
     mut camera_query: Query<
         (&mut CameraTracker, &mut Transform),
-        (Without<PlayerBoat>, Without<SkyDomeLayer>),
+        (Without<PlayerBoat>, Without<SkyDomeLayerBg>),
     >,
     mut skydome_query: Query<
-        (&SkyDomeLayer, &mut Transform),
+        (&SkyDomeLayerBg, &mut Transform),
         (Without<PlayerBoat>, Without<CameraTracker>),
     >,
     mut boat_query: Query<(&mut PlayerBoat, &mut Transform), Without<CameraTracker>>,
