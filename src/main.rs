@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate lazy_static_include;
 use bevy::{
     pbr::AmbientLight,
     prelude::*,

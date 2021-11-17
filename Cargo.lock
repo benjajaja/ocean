@@ -2612,6 +2612,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "lazy-static-include"
+version = "3.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6002fe04202bdaf9e8d82929a7c9ebfcf47d027d87f671818e8cf9ccb4029908"
+dependencies = [
+ "lazy_static",
+ "manifest-dir-macros",
+ "syn",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2745,6 +2756,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62bb907fe88d54d8d9ce32a3cceab4218ed2f6b7d35617cafe9adf84e43919cb"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "manifest-dir-macros"
+version = "0.1.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca7bbc41d799583acd24ed05a9c3db3c9275c93491b4e7cde0e609bb9598f2f0"
+dependencies = [
+ "once_cell",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -3158,6 +3181,7 @@ dependencies = [
  "bevy_egui",
  "bevy_prototype_debug_lines",
  "bevy_sprite 0.5.0",
+ "lazy-static-include",
  "rand 0.7.3",
 ]
 

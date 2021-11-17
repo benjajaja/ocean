@@ -85,8 +85,10 @@ struct WaterUniform {
     pub wave3: Vec4,
 }
 
-const WATER_VERTEX_SHADER: &str = include_str!("../assets/shaders/water.vert");
-const WATER_FRAGMENT_SHADER: &str = include_str!("../assets/shaders/water.frag");
+lazy_static_include_str! {
+    WATER_VERTEX_SHADER => "assets/shaders/water.vert",
+    WATER_FRAGMENT_SHADER => "assets/shaders/water.frag",
+}
 
 pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
     app.add_asset::<WaterUniform>()
@@ -113,10 +115,10 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     let water_pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
-        vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, WATER_VERTEX_SHADER)),
+        vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, &WATER_VERTEX_SHADER)),
         fragment: Some(shaders.add(Shader::from_glsl(
             ShaderStage::Fragment,
-            WATER_FRAGMENT_SHADER,
+            &WATER_FRAGMENT_SHADER,
         ))),
     }));
     render_graph.add_system_node(

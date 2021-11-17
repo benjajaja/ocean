@@ -30,6 +30,7 @@ bevy_prototype_debug_lines = "0.2.0"
 bevy_sprite = "0.5.0"
 bevy_egui = "0.6"
 rand = "0.7"
+lazy-static-include = "3.1.1"
 # bevy = {version="0.4.0", default-features=false}
 # bevy_webgl2 = {version="0.4.0", optional=true}
 

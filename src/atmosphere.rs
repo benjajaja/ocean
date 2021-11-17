@@ -5,8 +5,10 @@ use bevy::render::render_graph::{base, AssetRenderResourcesNode, RenderGraph};
 use bevy::render::renderer::RenderResources;
 use bevy::render::shader::{ShaderStage, ShaderStages};
 
-const SKY_VERTEX_SHADER: &str = include_str!("../assets/shaders/atmosphere.vert");
-const SKY_FRAGMENT_SHADER: &str = include_str!("../assets/shaders/atmosphere.frag");
+lazy_static_include_str! {
+    SKY_VERTEX_SHADER => "assets/shaders/atmosphere.vert",
+    SKY_FRAGMENT_SHADER => "assets/shaders/atmosphere.frag",
+}
 
 /// Controls the appearance of the sky
 ///
@@ -103,10 +105,10 @@ impl AtmosphereMat {
         mut render_graph: ResMut<RenderGraph>,
     ) -> RenderPipelines {
         let mut descriptor = PipelineDescriptor::default_config(ShaderStages {
-            vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, SKY_VERTEX_SHADER)),
+            vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, &SKY_VERTEX_SHADER)),
             fragment: Some(shaders.add(Shader::from_glsl(
                 ShaderStage::Fragment,
-                SKY_FRAGMENT_SHADER,
+                &SKY_FRAGMENT_SHADER,
             ))),
         });
         descriptor.depth_stencil = descriptor.depth_stencil.map(|mut depth_stencil_state| {
