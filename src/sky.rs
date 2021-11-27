@@ -312,10 +312,10 @@ fn atmosphere_add_sky_sphere(
 
     commands
         .spawn_bundle(MeshBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube {
-                size: -10.0,
-                // radius: -10.0,
-                // subdivisions: 2,
+            mesh: meshes.add(Mesh::from(shape::Icosphere {
+                // size: -10.0,
+                radius: -10.0,
+                subdivisions: 2,
             })),
             render_pipelines,
             ..Default::default()

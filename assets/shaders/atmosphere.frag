@@ -3,6 +3,7 @@
 precision highp float;
 
 layout(location = 0) in vec3 v_Pos;
+layout(location = 1) in vec2 v_Uv;
 layout(location = 0) out vec4 o_Target;
 
 layout(std140, set = 2, binding = 0) uniform AtmosphereMat_ray_origin {
@@ -152,7 +153,7 @@ void main() {
         mie.z               // Mie preferred scattering direction
     );
 
-    /* sky = 1.0 - exp(-1.0 * sky); */
+    sky = 1.0 - exp(-1.0 * sky);
 
     o_Target = vec4(sky, 1.0);
 }
