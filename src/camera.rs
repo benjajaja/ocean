@@ -1,5 +1,6 @@
 use crate::boat::PlayerBoat;
 use crate::sky::SkyDomeLayerBg;
+use crate::water::WaterCamera;
 use bevy::prelude::*;
 
 pub struct CameraTracker {
@@ -20,6 +21,27 @@ impl LookingUp {
             LookingUp::LookingDown(a) => a,
         }
     }
+}
+
+pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
+    app.add_startup_system(camera_startup_system.system());
+    app.add_system(camera_system.system().label("camera").after("physics"));
+    app
+}
+
+pub fn camera_startup_system(mut commands: Commands) {
+    commands
+        .spawn_bundle(PerspectiveCameraBundle {
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 15.0))
+                .looking_at(Vec3::default(), Vec3::Y),
+            ..Default::default()
+        })
+        .insert(CameraTracker {
+            bobber: Transform::from_translation(Vec3::new(0.0, 5.0, 0.0)),
+            looking_up: LookingUp::None,
+            input_rotation: Quat::IDENTITY,
+        })
+        .insert(WaterCamera);
 }
 
 const CAMERA_ROTATION_FACTOR: f32 = 10.0;

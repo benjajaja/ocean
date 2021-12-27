@@ -11,7 +11,6 @@ use core::f32::consts::PI;
 mod boat;
 mod camera;
 mod input;
-use camera::CameraTracker;
 
 mod atmosphere;
 mod sky;
@@ -61,7 +60,7 @@ fn main() {
         ..Default::default()
     });
 
-    app.insert_resource(Msaa { samples: 4 });
+    // app.insert_resource(Msaa { samples: 4 });
     app.add_plugins(DefaultPlugins);
     app.add_plugin(WireframePlugin);
     app.add_plugin(EguiPlugin);
@@ -76,15 +75,10 @@ fn main() {
 
     app.add_startup_system(setup.system());
 
+    camera::add_systems(&mut app);
     input::add_systems(&mut app);
 
-    app.add_system(
-        camera::camera_system
-            .system()
-            .label("camera")
-            .after("physics"),
-    )
-    .add_system(island_enter_leave.system());
+    app.add_system(island_enter_leave.system());
 
     boat::add_systems(&mut app);
     sky::add_systems(&mut app);
@@ -138,26 +132,6 @@ fn setup(
             ..Default::default()
         })
         .insert(water::Swimmer::default());
-
-    // commands.spawn_bundle(LightBundle {
-    // transform: Transform::from_translation(Vec3::new(4.0, 50.0, 4.0)),
-    // ..Default::default()
-    // });
-
-    commands
-        .spawn_bundle(PerspectiveCameraBundle {
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0))
-                .looking_at(Vec3::new(0.0, 5.0, 1000.0), Vec3::Y),
-            ..Default::default()
-        })
-        .insert(CameraTracker {
-            bobber: Transform::from_translation(Vec3::new(0.0, 5.0, 0.0)),
-            looking_up: camera::LookingUp::None,
-            input_rotation: Quat::IDENTITY,
-        })
-        .insert(water::WaterCamera);
-
-    println!("SkyCamera added.");
 }
 
 #[derive(Debug)]
