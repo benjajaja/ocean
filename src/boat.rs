@@ -35,7 +35,7 @@ pub struct MoveEvent {
 }
 
 fn paddle_transform() -> Transform {
-    Transform::from_translation(Vec3::new(0., 0.5, 4.))
+    Transform::from_translation(Vec3::new(0., 0.5, 3.3))
 }
 
 pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
@@ -57,7 +57,7 @@ fn boat_startup_system(
 ) {
     commands
         .spawn_bundle(PbrBundle {
-            mesh: asset_server.load("correolas.glb#Mesh1/Primitive0"),
+            mesh: asset_server.load("barquica.glb#Mesh0/Primitive0"),
             material: materials.add(Color::rgb(0.2, 0.8, 0.6).into()),
             ..Default::default()
         })
@@ -80,12 +80,11 @@ fn boat_startup_system(
                     ..Default::default()
                 })
                 .insert(BoatJet)
+                .insert(Name::new("BoatJet"))
                 .with_children(|parent| {
                     parent.spawn_bundle(PbrBundle {
-                        mesh: meshes.add(Mesh::from(shape::Box::new(0.5, 0.5, 1.))),
+                        mesh: asset_server.load("barquica.glb#Mesh1/Primitive0"),
                         material: materials.add(Color::rgb(0.8, 0.2, 0.6).into()),
-                        transform: Transform::from_translation(Vec3::new(0., 0., 0.5))
-                            * Transform::from_rotation(Quat::from_rotation_z(FRAC_PI_4)),
                         ..Default::default()
                     });
                 });
@@ -153,13 +152,16 @@ pub fn boat_physics_system(
                 time.seconds_since_startup() as f32 * water.wave_speed,
             );
             let takeoff_speed = (boat.speed / 50.).clamp(0., 1.);
-            new_translation.y = wavedata.position.y * (1. - takeoff_speed) + takeoff_speed * 4.;
+            new_translation.y = wavedata.position.y * (1. - takeoff_speed) + takeoff_speed * 5.;
 
             let normal_quat = water::surface_quat(&wavedata);
             boat_transform.rotation = boat_transform.rotation.slerp(
-                normal_quat.lerp(Quat::IDENTITY, takeoff_speed)
+                // normal_quat.lerp(Quat::IDENTITY, takeoff_speed)
+                normal_quat
                     * world_rotation_quat
-                    * Quat::from_rotation_z(FRAC_PI_4 * -boat.steer), // bank
+                    * Quat::from_rotation_z(
+                        FRAC_PI_4 * -boat.steer * (boat.speed / 100.).clamp(0., 1.),
+                    ), // bank
                 time.delta_seconds() * 2.,
             );
         }
