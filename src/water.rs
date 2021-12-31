@@ -24,6 +24,7 @@ pub struct Weather {
 pub struct Water {
     pub waves: [WaveProperties; 3],
     pub wave_speed: f32,
+    pub color: Color,
 }
 impl Water {
     #[allow(dead_code)]
@@ -135,12 +136,13 @@ fn setup(
     let mut water = Water {
         waves: get_waves(weather.wave_intensity),
         wave_speed: 0.8,
+        color: Color::rgb_u8(3, 0, 1),
     };
     set_waves(&mut water, weather.wave_intensity);
 
     let water_material = water_materials.add(WaterUniform {
         time: 0.,
-        color: Vec4::new(0.1, 0.5, 0.5, 1.0),
+        color: water.color.into(),
         camera: Vec3::new(0., 0., 0.),
         wave1: water.waves[0].to_vec4(),
         wave2: water.waves[1].to_vec4(),
@@ -301,7 +303,6 @@ pub fn wave_probe_system(
 const WATER_TRANSLATE_STEP: f32 = 20.;
 fn update_system(
     time: Res<Time>,
-    weather: Res<Weather>,
     mut water_mats: ResMut<Assets<WaterUniform>>,
     mut water_material_query: Query<&Handle<WaterUniform>>,
     mut water_query: Query<(&mut Water, &mut Transform), Without<PlayerBoat>>,
@@ -317,12 +318,12 @@ fn update_system(
         // if let Ok((_, boat_transform)) = boat_query.
         // boat_translation = boat_transform.translation;
         // }
-        if let Ok((mut water, mut water_transform)) = water_query.single_mut() {
+        if let Ok((water, mut water_transform)) = water_query.single_mut() {
             water_material.time = time.seconds_since_startup() as f32 * water.wave_speed;
-            // set_waves(&mut water, weather.wave_intensity);
             water_material.wave1 = water.waves[0].to_vec4();
             water_material.wave2 = water.waves[1].to_vec4();
             water_material.wave3 = water.waves[2].to_vec4();
+            water_material.color = water.color.into();
 
             water_transform.translation.x = 0.;
             if let Ok((_, boat_transform)) = boat_query.single() {

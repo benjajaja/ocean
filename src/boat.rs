@@ -50,7 +50,6 @@ pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::A
 
 fn boat_startup_system(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut materials_color: ResMut<Assets<ColorMaterial>>,
     asset_server: Res<AssetServer>,

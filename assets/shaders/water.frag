@@ -39,14 +39,14 @@ void main() {
       + smoothstep(0.99, .999, (sin(World_Position.z * 4)) * 1);
 
     float pixelate = .02;
-    float voronoiTap = Voronoi3Tap(pixelate * floor(World_Position.xz * 0.05 / pixelate), time);
+    float voronoiTap = Voronoi3Tap(pixelate * floor(World_Position.xz * 0.03 / pixelate), time);
     float voronoi = pow(voronoiTap, 5);
     vec3 voronoi_sample = vec3(voronoi) * vec3(1.0, 0.8, 0.9);
     //smoothstep(0.5, 1.0, pow(c + .2, 10));
 
     vec3 diffuse = voronoi_sample * max(0., (dot(Vertex_Normal, light_direction)));
 
-    vec3 color = (diffuse + specular);
+    vec3 texture_color = color + diffuse + specular;
       /* vec3(crest, crest, crest) */
       /* vec3(0., 0., 0.) +*/
       /* diffuse + specular + */
@@ -55,7 +55,7 @@ void main() {
           /* 0., */
           /* voronoi */
         /* ); */
-    o_Target = vec4(color, fade);
+    o_Target = vec4(texture_color, fade);
 }
 
 /*

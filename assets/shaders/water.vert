@@ -40,7 +40,7 @@ float snoise(vec2);
 void gerstner_wave(vec3 position, inout vec3 target, inout vec3 tangent, inout vec3 binormal, vec4 props);
 
 
-const vec3 light_direction = normalize(vec3(1, 1, 1));
+const vec3 light_direction = normalize(vec3(1, 1, -1));
 const float specular_intensity = 100;
 
 void main() {

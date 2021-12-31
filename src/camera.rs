@@ -37,7 +37,7 @@ pub fn camera_startup_system(mut commands: Commands) {
             ..Default::default()
         })
         .insert(CameraTracker {
-            bobber: Transform::from_translation(Vec3::new(0.0, 10.0, 0.0)),
+            bobber: Transform::from_translation(Vec3::new(0.0, 5.0, 0.0)),
             looking_up: LookingUp::None,
             input_rotation: Quat::IDENTITY,
         })
