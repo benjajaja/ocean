@@ -84,6 +84,7 @@ fn main() {
     });
     app.insert_resource(WorldInspectorParams {
         sort_components: true,
+        enabled: false,
         ..Default::default()
     });
     app.add_startup_system(setup.system());

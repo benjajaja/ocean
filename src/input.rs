@@ -2,6 +2,7 @@ use crate::boat;
 use crate::camera::{CameraTracker, LookingUp};
 use crate::AppState;
 use bevy::{input::mouse::MouseMotion, prelude::*};
+use bevy_inspector_egui::WorldInspectorParams;
 
 const INPUT_ACCEL: f32 = 1.0;
 const INPUT_DECAY: f32 = 4.0;
@@ -28,12 +29,20 @@ pub fn ingame_keyboard_input_system(
     mut camera_query: Query<(&mut Transform, &mut CameraTracker)>,
     mut state: ResMut<State<AppState>>,
     mut windows: ResMut<Windows>,
+    mut inspector_params: ResMut<WorldInspectorParams>,
 ) {
     if keyboard_input.just_pressed(KeyCode::E) {
         if let Ok(_) = state.set(AppState::Menu) {
             let window = windows.get_primary_mut().unwrap();
             window.set_cursor_visibility(true);
             keyboard_input.reset(KeyCode::E);
+        }
+    }
+
+    if keyboard_input.just_pressed(KeyCode::V) {
+        inspector_params.enabled = !inspector_params.enabled;
+        if let Some(window) = windows.get_primary_mut() {
+            window.set_cursor_visibility(inspector_params.enabled);
         }
     }
 
@@ -99,7 +108,11 @@ pub fn menu_keyboard_input_system(
 pub fn mouse_input_system(
     mut mouse_motion_events: EventReader<MouseMotion>,
     mut camera_query: Query<&mut CameraTracker>,
+    inspector_params: ResMut<WorldInspectorParams>,
 ) {
+    if inspector_params.enabled {
+        return;
+    }
     if let Some(mut camera) = camera_query.iter_mut().next() {
         for event in mouse_motion_events.iter() {
             camera.input_rotation = (camera.input_rotation
