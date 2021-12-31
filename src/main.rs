@@ -95,7 +95,7 @@ fn main() {
     app.add_system(island_enter_leave.system());
 
     boat::add_systems(&mut app);
-    // sky::add_systems(&mut app);
+    sky::add_systems(&mut app);
     water::add_systems(&mut app);
     ui::add_systems(&mut app);
     app.insert_resource(AmbientLight {
