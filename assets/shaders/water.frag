@@ -14,46 +14,48 @@ layout(location = 0) in vec2 v_Uv;
 layout(location = 1) in vec3 Vertex_Normal;
 layout(location = 2) in vec4 World_Position;
 layout(location = 3) in vec3 o_Vertex_Position;
+layout(location = 4) in vec3 specular;
 
 layout(location = 0) out vec4 o_Target;
 
 
-const vec3 light_direction = normalize(vec3(0.5, 1, 0.5));
+const vec3 light_direction = normalize(vec3(1, 1, -1));
 const float FADE_DROPOFF = 0.75;
+const float specular_intensity = 100;
 
 float Voronoi3Tap(vec2 p, float iTime);
 
 void main() {
+    /* vec3 light_reflect_direction = reflect(-light_direction, Vertex_Normal); */
+    /* vec3 view_direction = normalize(camera - World_Position.xyz); */
+    /* float light_see_direction = max(0.0, dot(light_reflect_direction, view_direction)); */
+    /* float shininess = pow(light_see_direction, specular_intensity); */
+    /* vec3 specular = vec3(.5) * shininess; */
+
+    // voronoi:
     float fade = 1 - smoothstep(0.75, 0.9, sqrt(dot(o_Vertex_Position.xz, o_Vertex_Position.xz)));
 
-    float specular_intensity = .1;
-    vec3 specular = pow(dot(
-        normalize((light_direction - World_Position.xyz)),
-        reflect(Vertex_Normal, Vertex_Normal)
-    ), specular_intensity) * vec3(1.0, 1.0, 1.0);
-
-    vec3 diffuse = color.rgb * (dot(Vertex_Normal, light_direction));
-    float reflection = (sin(gl_FragCoord.y / 2 - time * 10) * 0.05 * fade + (1 - specular.y)) * 0.2;
-
-    float stripe = smoothstep(0.99, .999, (sin(World_Position.x * 4)) * 1)
+    float grid = smoothstep(0.99, .999, (sin(World_Position.x * 4)) * 1)
       + smoothstep(0.99, .999, (sin(World_Position.z * 4)) * 1);
 
-    float pixelate = .01;
-    float c = Voronoi3Tap(pixelate * floor(World_Position.xz*0.1 / pixelate), time);
-    float crest =  pow(c, 10);
+    float pixelate = .02;
+    float voronoiTap = Voronoi3Tap(pixelate * floor(World_Position.xz * 0.05 / pixelate), time);
+    float voronoi = pow(voronoiTap, 5);
+    vec3 voronoi_sample = vec3(voronoi) * vec3(1.0, 0.8, 0.9);
     //smoothstep(0.5, 1.0, pow(c + .2, 10));
 
-    vec3 color = //(vec3(crest, crest, crest))
-      vec3(0., 0., 0.)
-      + vec3(
-          reflection,
-          0.,
-          crest
-        );
+    vec3 diffuse = voronoi_sample * max(0., (dot(Vertex_Normal, light_direction)));
+
+    vec3 color = (diffuse + specular);
+      /* vec3(crest, crest, crest) */
+      /* vec3(0., 0., 0.) +*/
+      /* diffuse + specular + */
+      /* vec3( */
+          /* 0., */
+          /* 0., */
+          /* voronoi */
+        /* ); */
     o_Target = vec4(color, fade);
-    /* o_Target = vec4(specular, 1.); */
-    /* o_Target = vec4(Vertex_Normal / 2., 1); */
-    /* o_Target = vec4(color.rgb, 1.); */
 }
 
 /*

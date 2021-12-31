@@ -1,3 +1,4 @@
 /target
 .cargo
 /garbage
+assets/sources/*.blend?

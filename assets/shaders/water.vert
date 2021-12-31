@@ -7,6 +7,7 @@ layout(location = 0) out vec2 v_Uv;
 layout(location = 1) out vec3 Vertex_Normal;
 layout(location = 2) out vec4 World_Position;
 layout(location = 3) out vec3 o_Vertex_Position;
+layout(location = 4) out vec3 specular;
 
 layout(set = 0, binding = 0) uniform CameraViewProj {
     mat4 ViewProj;
@@ -17,7 +18,12 @@ layout(set = 1, binding = 0) uniform Transform {
 layout(set = 2, binding = 0) uniform WaterUniform_time {
     float time;
 };
-/* color, camera ignored */
+layout(set = 2, binding = 1) uniform WaterUniform_color {
+    vec3 color;
+};
+layout(set = 2, binding = 2) uniform WaterUniform_camera {
+    vec3 camera;
+};
 layout(set = 2, binding = 3) uniform WaterUniform_wave1 {
     vec4 wave1;
 };
@@ -32,6 +38,10 @@ float sine_noise(float, float);
 // https://catlikecoding.com/unity/tutorials/flow/waves/
 float snoise(vec2);
 void gerstner_wave(vec3 position, inout vec3 target, inout vec3 tangent, inout vec3 binormal, vec4 props);
+
+
+const vec3 light_direction = normalize(vec3(1, 1, 1));
+const float specular_intensity = 100;
 
 void main() {
     o_Vertex_Position = Vertex_Position;
@@ -52,6 +62,13 @@ void main() {
     gl_Position = ViewProj * World_Position;
 
     Vertex_Normal = normalize(cross(binormal, tangent));
+
+    // light reflection
+    vec3 light_reflect_direction = reflect(-light_direction, Vertex_Normal);
+    vec3 view_direction = normalize(camera - World_Position.xyz);
+    float light_see_direction = max(0.0, dot(light_reflect_direction, view_direction));
+    float shininess = pow(light_see_direction, specular_intensity);
+    specular = vec3(.5) * shininess;
 }
 
 float sine_noise(float v, float time) {

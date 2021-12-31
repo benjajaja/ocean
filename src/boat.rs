@@ -2,8 +2,10 @@ use super::water;
 use crate::water::Water;
 use crate::AppState;
 use bevy::prelude::*;
+use bevy_inspector_egui::Inspectable;
 use core::f32::consts::FRAC_PI_4;
 
+#[derive(Inspectable)]
 pub struct PlayerBoat {
     pub throttle: f32,
     pub steer: f32,
@@ -21,6 +23,7 @@ pub struct PlayerBoat {
 
 pub struct BoatJet;
 
+#[derive(Inspectable)]
 pub struct BoatExhaustParticle {
     free: bool,
 }
@@ -32,7 +35,7 @@ pub struct MoveEvent {
 }
 
 fn paddle_transform() -> Transform {
-    Transform::from_translation(Vec3::new(0., 0.5, -4.))
+    Transform::from_translation(Vec3::new(0., 0.5, 4.))
 }
 
 pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
@@ -54,7 +57,7 @@ fn boat_startup_system(
 ) {
     commands
         .spawn_bundle(PbrBundle {
-            mesh: asset_server.load("correolas.glb#Mesh0/Primitive0"),
+            mesh: asset_server.load("correolas.glb#Mesh1/Primitive0"),
             material: materials.add(Color::rgb(0.2, 0.8, 0.6).into()),
             ..Default::default()
         })
@@ -69,6 +72,7 @@ fn boat_startup_system(
             airborne: None,
             exhaust_last: 0.,
         })
+        .insert(Name::new("PlayerBoat"))
         .with_children(|parent| {
             parent
                 .spawn_bundle(PbrBundle {
@@ -80,7 +84,7 @@ fn boat_startup_system(
                     parent.spawn_bundle(PbrBundle {
                         mesh: meshes.add(Mesh::from(shape::Box::new(0.5, 0.5, 1.))),
                         material: materials.add(Color::rgb(0.8, 0.2, 0.6).into()),
-                        transform: Transform::from_translation(Vec3::new(0., 0., -0.5))
+                        transform: Transform::from_translation(Vec3::new(0., 0., 0.5))
                             * Transform::from_rotation(Quat::from_rotation_z(FRAC_PI_4)),
                         ..Default::default()
                     });
@@ -88,7 +92,7 @@ fn boat_startup_system(
         });
 
     let texture = asset_server.load("star.png");
-    for _ in 1..10 {
+    for i in 0..10 {
         commands
             .spawn_bundle(SpriteBundle {
                 sprite: Sprite {
@@ -105,7 +109,8 @@ fn boat_startup_system(
                 },
                 ..Default::default()
             })
-            .insert(BoatExhaustParticle { free: true });
+            .insert(BoatExhaustParticle { free: true })
+            .insert(Name::new(format!("BoatExhaustParticle-{}", i)));
     }
 }
 
@@ -130,7 +135,7 @@ pub fn boat_physics_system(
 
         let world_rotation_quat = Quat::from_rotation_y(boat.world_rotation);
 
-        let propulsion = (world_rotation_quat * Vec3::Z) * ENGINE_FORCE * boat.throttle;
+        let propulsion = (world_rotation_quat * -Vec3::Z) * ENGINE_FORCE * boat.throttle;
         let drag = -DRAG * boat.velocity * boat.speed;
         let friction = -FRICTION * boat.velocity;
 
@@ -154,7 +159,7 @@ pub fn boat_physics_system(
             boat_transform.rotation = boat_transform.rotation.slerp(
                 normal_quat.lerp(Quat::IDENTITY, takeoff_speed)
                     * world_rotation_quat
-                    * Quat::from_rotation_z(FRAC_PI_4 * boat.steer),
+                    * Quat::from_rotation_z(FRAC_PI_4 * -boat.steer), // bank
                 time.delta_seconds() * 2.,
             );
         }

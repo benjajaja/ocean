@@ -11,13 +11,16 @@ use bevy::{
         shader::{ShaderStage, ShaderStages},
     },
 };
+use bevy_inspector_egui::Inspectable;
 use std::f32::consts::PI;
 use std::ops::AddAssign;
 
+#[derive(Inspectable)]
 pub struct Weather {
     pub wave_intensity: f32,
 }
 
+#[derive(Inspectable, Debug)]
 pub struct Water {
     pub waves: [WaveProperties; 3],
     pub wave_speed: f32,
@@ -44,7 +47,7 @@ pub struct WaveData {
     pub tangent: Vec3,
 }
 
-#[derive(Debug)]
+#[derive(Inspectable, Debug)]
 pub struct WaveProperties {
     pub wavelength: f32,
     pub steepness: f32,
@@ -93,7 +96,7 @@ lazy_static_include_str! {
 pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
     app.add_asset::<WaterUniform>()
         .insert_resource(Weather {
-            wave_intensity: 1.0,
+            wave_intensity: 2.0,
         })
         .add_startup_system(setup.system())
         .add_system_set(
@@ -156,6 +159,7 @@ fn setup(
         })
         .insert(water_material)
         .insert(water)
+        .insert(Name::new("Water"))
         .id();
 
     let water_bottom_plane = commands
@@ -165,6 +169,7 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(0.0, -1.0, 0.0)),
             ..Default::default()
         })
+        .insert(Name::new("Water-plane"))
         .id();
     commands
         .entity(water_entity)
@@ -314,7 +319,7 @@ fn update_system(
         // }
         if let Ok((mut water, mut water_transform)) = water_query.single_mut() {
             water_material.time = time.seconds_since_startup() as f32 * water.wave_speed;
-            set_waves(&mut water, weather.wave_intensity);
+            // set_waves(&mut water, weather.wave_intensity);
             water_material.wave1 = water.waves[0].to_vec4();
             water_material.wave2 = water.waves[1].to_vec4();
             water_material.wave3 = water.waves[2].to_vec4();

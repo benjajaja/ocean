@@ -7,6 +7,8 @@ use bevy::{
     wgpu::{WgpuFeature, WgpuFeatures, WgpuOptions},
 };
 use bevy_egui::EguiPlugin;
+use bevy_inspector_egui::{InspectableRegistry, WorldInspectorParams, WorldInspectorPlugin};
+use bevy_prototype_debug_lines::*;
 use core::f32::consts::PI;
 mod boat;
 mod camera;
@@ -64,6 +66,14 @@ fn main() {
     app.add_plugins(DefaultPlugins);
     app.add_plugin(WireframePlugin);
     app.add_plugin(EguiPlugin);
+    app.add_plugin(DebugLinesPlugin);
+    app.add_plugin(WorldInspectorPlugin::new());
+    // getting registry from world
+    let mut registry = app
+        .world_mut()
+        .get_resource_or_insert_with(InspectableRegistry::default);
+    // registering custom component to be able to edit it in inspector
+    registry.register::<water::Water>();
 
     app.add_state(AppState::InGame);
     app.add_event::<NavigationEvent>();
@@ -72,7 +82,10 @@ fn main() {
     app.insert_resource(InGameState {
         time: DayTime::Night,
     });
-
+    app.insert_resource(WorldInspectorParams {
+        sort_components: true,
+        ..Default::default()
+    });
     app.add_startup_system(setup.system());
 
     camera::add_systems(&mut app);
@@ -81,7 +94,7 @@ fn main() {
     app.add_system(island_enter_leave.system());
 
     boat::add_systems(&mut app);
-    sky::add_systems(&mut app);
+    // sky::add_systems(&mut app);
     water::add_systems(&mut app);
     ui::add_systems(&mut app);
     app.insert_resource(AmbientLight {
@@ -102,7 +115,7 @@ fn setup(
         .spawn_bundle(PbrBundle {
             mesh: asset_server.load("flota1.glb#Mesh0/Primitive0"),
             material: materials.add(Color::rgb(0.0, 0.9, 0.6).into()),
-            transform: Transform::from_translation(Vec3::new(5.0, 0.0, 0.0)),
+            transform: Transform::from_translation(Vec3::new(10., 10., -10.)),
             ..Default::default()
         })
         .insert(water::Swimmer {
@@ -160,7 +173,7 @@ fn island_enter_leave(
         match ev {
             NavigationEvent::Enter(island, sky_rotation, translation) => match state.time {
                 DayTime::Night => {
-                    println!("sunrise");
+                    println!("sunrise {:?}", island);
                     state.time = DayTime::Day;
 
                     let mut palmtree_transform = Transform::from_translation(*translation);
@@ -201,7 +214,7 @@ fn island_enter_leave(
                     state.time = DayTime::Night;
 
                     for (_, entity) in worldisland_query.iter() {
-                        commands.entity(entity).despawn();
+                        // commands.entity(entity).despawn();
                     }
                 }
                 DayTime::Night => {

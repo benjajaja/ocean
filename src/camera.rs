@@ -32,8 +32,6 @@ pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::A
 pub fn camera_startup_system(mut commands: Commands) {
     commands
         .spawn_bundle(PerspectiveCameraBundle {
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 15.0))
-                .looking_at(Vec3::default(), Vec3::Y),
             ..Default::default()
         })
         .insert(CameraTracker {
@@ -68,7 +66,7 @@ pub fn camera_system(
             );
         }
 
-        let camera_z = -15. + (camera.looking_up.value() * 14.99);
+        let camera_z = 15. + (camera.looking_up.value() * 14.99);
         camera_transform.translation =
             camera.bobber.translation + (camera.bobber.rotation * Vec3::new(0.0, 5.0, camera_z));
         let mut looking_at = camera.bobber.translation;

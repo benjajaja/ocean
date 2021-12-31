@@ -214,6 +214,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d5f2f58f0aec3c50a20799792c3705e80dd7df327e79791cacec197e84e5e61"
 
 [[package]]
+name = "bevy-inspector-egui"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6abaea0fd1c88e0f6f90b1748f0475b0c3e330496875d3a3cfc6867003214533"
+dependencies = [
+ "bevy",
+ "bevy-inspector-egui-derive",
+ "bevy_egui 0.6.2",
+ "emath 0.13.0",
+ "image",
+ "pretty-type-name",
+ "rand 0.8.4",
+]
+
+[[package]]
+name = "bevy-inspector-egui-derive"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "597c9d3f603a1fa88cfec941661e73ea18fc0010962777f3dbc5866ea3376919"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "bevy_app"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -369,13 +395,27 @@ dependencies = [
 
 [[package]]
 name = "bevy_egui"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb6d7ab5bd9077a6d2608e5fbc23f60688ba1e026c3cfe81656381863b29e7a7"
+dependencies = [
+ "bevy",
+ "clipboard",
+ "egui 0.13.1",
+ "thread_local",
+ "webbrowser",
+ "winit",
+]
+
+[[package]]
+name = "bevy_egui"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a1764d9e546b1ad5bf6af8867b0a054ed47a0e39f78d5b05a329821dc34660c"
 dependencies = [
  "bevy",
  "clipboard",
- "egui",
+ "egui 0.15.0",
  "thread_local",
  "webbrowser",
  "winit",
@@ -1271,14 +1311,29 @@ checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 
 [[package]]
 name = "egui"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77f9b394ccacc0cccb30f6de7371038a116931aa3186acd908b9ec61f405f15c"
+dependencies = [
+ "epaint 0.13.0",
+]
+
+[[package]]
+name = "egui"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c8d416a3343cbfc6f4d17bb1cba46b4d7efecb9ee541967763e0b5e04e5fae7"
 dependencies = [
  "ahash 0.7.6",
- "epaint",
+ "epaint 0.15.0",
  "nohash-hasher",
 ]
+
+[[package]]
+name = "emath"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80eea7508c08a7b4e2a041adcdca6f400d8606622c6bb980ecbbdc5f1aff9a4c"
 
 [[package]]
 name = "emath"
@@ -1298,6 +1353,19 @@ dependencies = [
 
 [[package]]
 name = "epaint"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "132e30d483d9fa252fe06aa112de777d068503c379fa51bc5834204ee3258fce"
+dependencies = [
+ "ab_glyph",
+ "ahash 0.7.6",
+ "atomic_refcell",
+ "emath 0.13.0",
+ "ordered-float",
+]
+
+[[package]]
+name = "epaint"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "16bb4d3b8bbbd132c99d2a5efec8567e8b6d09b742f758ae6cf1e4b104fe0231"
@@ -1305,7 +1373,7 @@ dependencies = [
  "ab_glyph",
  "ahash 0.7.6",
  "atomic_refcell",
- "emath",
+ "emath 0.15.0",
  "nohash-hasher",
 ]
 
@@ -2604,7 +2672,8 @@ name = "ocean"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bevy_egui",
+ "bevy-inspector-egui",
+ "bevy_egui 0.8.0",
  "bevy_prototype_debug_lines",
  "bevy_sprite",
  "lazy-static-include",
@@ -2616,6 +2685,15 @@ name = "once_cell"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da32515d9f6e6e489d7bc9d84c71b060db7247dc035bbe44eac88cf87486d8d5"
+
+[[package]]
+name = "ordered-float"
+version = "2.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97c9d06878b3a851e8026ef94bf7fef9ba93062cd412601da4d9cf369b1cc62d"
+dependencies = [
+ "num-traits",
+]
 
 [[package]]
 name = "owned_ttf_parser"
@@ -2708,6 +2786,12 @@ name = "ppv-lite86"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed0cfbc8191465bed66e1718596ee0b0b35d5ee1f41c5df2189d0fe8bde535ba"
+
+[[package]]
+name = "pretty-type-name"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8815d101cfb4cb491154896bdab292a395a7ac9ab185a9941a2f5be0135900d"
 
 [[package]]
 name = "proc-macro-crate"
