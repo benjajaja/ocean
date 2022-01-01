@@ -35,7 +35,7 @@ pub struct MoveEvent {
 }
 
 fn paddle_transform() -> Transform {
-    Transform::from_translation(Vec3::new(0., 0.5, 3.3))
+    Transform::from_translation(Vec3::new(0.45, 0.0, 1.9))
 }
 
 pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
@@ -54,10 +54,20 @@ fn boat_startup_system(
     mut materials_color: ResMut<Assets<ColorMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
+    let material_handle = materials.add(StandardMaterial {
+        base_color: Color::WHITE,
+        base_color_texture: Some(asset_server.load("textures/wood.png")),
+        roughness: 0.2,
+        metallic: 0.5,
+        reflectance: 0.8,
+        // unlit: true,
+        ..Default::default()
+    });
+
     commands
         .spawn_bundle(PbrBundle {
-            mesh: asset_server.load("barquica.glb#Mesh0/Primitive0"),
-            material: materials.add(Color::rgb(0.2, 0.8, 0.6).into()),
+            mesh: asset_server.load("raft.glb#Mesh0/Primitive0"),
+            material: material_handle,
             ..Default::default()
         })
         .insert(PlayerBoat {
@@ -82,15 +92,28 @@ fn boat_startup_system(
                 .insert(Name::new("BoatJet"))
                 .with_children(|parent| {
                     parent.spawn_bundle(PbrBundle {
-                        mesh: asset_server.load("barquica.glb#Mesh1/Primitive0"),
-                        material: materials.add(Color::rgb(0.8, 0.2, 0.6).into()),
+                        mesh: asset_server.load("raft.glb#Mesh1/Primitive0"),
+                        material: materials.add(Color::rgb(0.1, 0.0, 0.0).into()),
                         ..Default::default()
                     });
                 });
+
+            let sail_material_handle = materials.add(StandardMaterial {
+                base_color: Color::WHITE,
+                double_sided: true,
+                ..Default::default()
+            });
+            parent
+                .spawn_bundle(PbrBundle {
+                    mesh: asset_server.load("raft.glb#Mesh2/Primitive0"),
+                    material: sail_material_handle,
+                    ..Default::default()
+                })
+                .insert(Name::new("Sail"));
         });
 
     let texture = asset_server.load("splash.png");
-    for i in 0..10 {
+    for i in 0..0 {
         commands
             .spawn_bundle(SpriteBundle {
                 sprite: Sprite {
@@ -151,16 +174,15 @@ pub fn boat_physics_system(
                 time.seconds_since_startup() as f32 * water.wave_speed,
             );
             let takeoff_speed = (boat.speed / 50.).clamp(0., 1.);
-            new_translation.y = wavedata.position.y * (1. - takeoff_speed) + takeoff_speed * 5.;
+            new_translation.y = wavedata.position.y; // * (1. - takeoff_speed) + takeoff_speed * 5.;
 
             let normal_quat = water::surface_quat(&wavedata);
             boat_transform.rotation = boat_transform.rotation.slerp(
                 // normal_quat.lerp(Quat::IDENTITY, takeoff_speed)
-                normal_quat
-                    * world_rotation_quat
-                    * Quat::from_rotation_z(
-                        FRAC_PI_4 * -boat.steer * (boat.speed / 100.).clamp(0., 1.),
-                    ), // bank
+                normal_quat * world_rotation_quat,
+                // * Quat::from_rotation_z(
+                // FRAC_PI_4 * -boat.steer * (boat.speed / 100.).clamp(0., 1.),
+                // ), // bank
                 time.delta_seconds() * 2.,
             );
         }

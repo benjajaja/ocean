@@ -97,7 +97,7 @@ fn main() {
     ui::add_systems(&mut app);
     app.insert_resource(AmbientLight {
         color: Color::WHITE,
-        brightness: 1.0 / 5.0f32,
+        brightness: 0.2,
     });
     app.run();
 }
