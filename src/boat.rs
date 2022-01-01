@@ -89,7 +89,7 @@ fn boat_startup_system(
                 });
         });
 
-    let texture = asset_server.load("star.png");
+    let texture = asset_server.load("splash.png");
     for i in 0..10 {
         commands
             .spawn_bundle(SpriteBundle {

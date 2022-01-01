@@ -13,7 +13,6 @@ mod boat;
 mod camera;
 mod input;
 
-mod atmosphere;
 mod sky;
 mod stripe;
 mod ui;
@@ -117,6 +116,7 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(10., 10., -10.)),
             ..Default::default()
         })
+        .insert(Name::new("Flotante1"))
         .insert(water::Swimmer {
             world_rotation: PI / 4.,
             ..Default::default()
@@ -130,6 +130,7 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(5.0, 0.0, 20.0)),
             ..Default::default()
         })
+        .insert(Name::new("Flotante2"))
         .insert(water::Swimmer {
             ..Default::default()
         });
@@ -143,6 +144,7 @@ fn setup(
             transform: Transform::from_translation(Vec3::new(-10.0, 0.0, 5.0)),
             ..Default::default()
         })
+        .insert(Name::new("Flotante3"))
         .insert(water::Swimmer::default());
 }
 
@@ -184,7 +186,7 @@ fn island_enter_leave(
                     // transform: palmtree_transform,
                     // ..Default::default()
                     // };
-                    let scene_handle = asset_server.load("palmera3.glb#Scene0");
+                    let scene_handle = asset_server.load("palmera2.glb#Scene0");
                     commands
                         .spawn_bundle((palmtree_transform, GlobalTransform::identity()))
                         .insert(WorldIsland {

@@ -1,4 +1,3 @@
-use crate::atmosphere;
 use crate::stripe;
 use crate::DayTime;
 use crate::InGameState;
@@ -13,6 +12,7 @@ use bevy::{
 };
 use std::error::Error;
 use std::f32::consts::FRAC_PI_2;
+mod atmosphere;
 
 pub struct SkyDomeLayer;
 pub struct SkyDomeLayerBg;
@@ -53,7 +53,6 @@ pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::A
     app.add_startup_system(spawn_sky.system());
 
     // app.insert_resource(atmosphere::AtmosphereMat {
-    // sun_intensity: 1.0,
     // ..Default::default()
     // });
     // app.add_asset::<atmosphere::AtmosphereMat>();
@@ -75,27 +74,32 @@ pub fn spawn_sky(
     match sky_pipelines(&mut pipelines, &mut render_graph, "StandardMaterial") {
         Err(error) => eprintln!("{}", error),
         Ok(render_pipelines) => {
+            println!("loading star texture...");
             let texture_handle: Handle<Texture> = asset_server.load("star.png");
-            let texture_handle_islands: Handle<Texture> = asset_server.load("palmtree_sky.png");
+            println!("loaded: {:?}", texture_handle);
 
-            let sky_material = materials.add(StandardMaterial {
+            let sky_material_handle = materials.add(StandardMaterial {
                 base_color: Color::WHITE,
                 base_color_texture: Some(texture_handle),
                 unlit: true,
                 ..Default::default()
             });
 
+            println!("material: {:?}", sky_material_handle);
+
             commands
                 .spawn_bundle(PbrBundle {
                     mesh: meshes.add(stripe::bg_stars()),
                     render_pipelines: render_pipelines.clone(),
+                    material: sky_material_handle,
                     transform: Transform::from_scale(Vec3::splat(100.0)),
                     ..Default::default()
                 })
-                .insert(sky_material)
-                .insert(SkyDomeLayer {})
+                .insert(Name::new("SkyStars"))
+                .insert(SkyDomeLayer)
                 .insert(SkyDomeLayerBg);
 
+            let texture_handle_islands: Handle<Texture> = asset_server.load("palmtree_sky.png");
             let islands = vec![
                 // SkyDomeIsland::new(
                 // super::Island::IslandA,
@@ -132,16 +136,18 @@ pub fn spawn_sky(
             commands
                 .spawn_bundle(PbrBundle {
                     mesh: meshes.add(stripe::island_stars(island_stars)),
+                    material: sky_material_islands,
                     render_pipelines: render_pipelines.clone(),
                     transform: Transform::from_scale(Vec3::splat(100.0)),
                     ..Default::default()
                 })
-                .insert(sky_material_islands)
-                .insert(SkyDomeLayer {})
-                .insert(SkyDomeLayerBg {});
+                .insert(Name::new("SkyIslands"))
+                .insert(SkyDomeLayer)
+                .insert(SkyDomeLayerBg);
 
             for island in islands {
-                commands.spawn_bundle((island,));
+                let name = format!("SkyDomeIsland-{:?}", island.id);
+                commands.spawn_bundle((island,)).insert(Name::new(name));
             }
         }
     }
@@ -316,8 +322,10 @@ fn atmosphere_add_sky_sphere(
     let render_pipelines = atmosphere::AtmosphereMat::pipeline(pipelines, shaders, render_graph);
 
     let sky_material = atmosphere::AtmosphereMat::default();
+    println!("atmosphere {:?}", sky_material);
 
-    let sky_material = sky_materials.add(sky_material);
+    let sky_material_handle = sky_materials.add(sky_material);
+    println!("atmosphere handle {:?}", sky_material_handle);
 
     commands
         .spawn_bundle(MeshBundle {
@@ -329,6 +337,7 @@ fn atmosphere_add_sky_sphere(
             render_pipelines,
             ..Default::default()
         })
-        .insert(sky_material)
+        .insert(Name::new("Atmosphere"))
+        .insert(sky_material_handle)
         .insert(SkyDomeLayerBg {});
 }
