@@ -26,10 +26,14 @@ edition = "2018"
 
 [dependencies]
 bevy = { version = "0.5.0", features = ["dynamic"] }
-bevy_prototype_debug_lines = "0.2.0"
 bevy-inspector-egui = "0.6.1"
-bevy_sprite = "0.5.0"
 bevy_egui = "0.8"
+# bevy = { version = "0.5.0", git = "https://github.com/bevyengine/bevy", rev = "1d0d8a3397bd6fc2c14d42ffd0668d2443748912", featues = ["dynamic" ] }
+# bevy-inspector-egui = { git = "https://github.com/jakobhellermann/bevy-inspector-egui/", rev = "64d1c79af75db6f41da46c8f1c05f4eaa487fb43" }
+# bevy_egui = { git = "https://github.com/jakobhellermann/bevy_egui.git", rev = "636ee31277f82873f490d2daf99ab64a66a10710" }
+
+bevy_sprite = "0.5.0"
+
 rand = "0.7"
 lazy-static-include = "3.1.1"
 # bevy_prototype_particles = { git = "https://github.com/james7132/bevy_prototype_particles", rev="3d57df69984fc64a5681617957bd2106cb64a2eb" }

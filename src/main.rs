@@ -8,7 +8,6 @@ use bevy::{
 };
 use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::{InspectableRegistry, WorldInspectorParams, WorldInspectorPlugin};
-use bevy_prototype_debug_lines::*;
 use core::f32::consts::PI;
 mod boat;
 mod camera;
@@ -66,7 +65,6 @@ fn main() {
     app.add_plugins(DefaultPlugins);
     app.add_plugin(WireframePlugin);
     app.add_plugin(EguiPlugin);
-    app.add_plugin(DebugLinesPlugin);
     app.add_plugin(WorldInspectorPlugin::new());
     // getting registry from world
     let mut registry = app
@@ -186,7 +184,7 @@ fn island_enter_leave(
                     // transform: palmtree_transform,
                     // ..Default::default()
                     // };
-                    let scene_handle = asset_server.load("palmera2.glb#Scene0");
+                    let scene_handle = asset_server.load("palmera3.glb#Scene0");
                     commands
                         .spawn_bundle((palmtree_transform, GlobalTransform::identity()))
                         .insert(WorldIsland {
@@ -214,7 +212,7 @@ fn island_enter_leave(
                     println!("sunset");
                     state.time = DayTime::Night;
 
-                    for (_, entity) in worldisland_query.iter() {
+                    for (_, _entity) in worldisland_query.iter() {
                         // commands.entity(entity).despawn();
                     }
                 }
