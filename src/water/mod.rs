@@ -1,26 +1,19 @@
-pub(crate) use crate::boat::PlayerBoat;
+use crate::boat::PlayerBoat;
 use crate::AppState;
+use bevy::render::render_asset::RenderAssetPlugin;
 
-use bevy::{
-    prelude::*,
-    reflect::TypeUuid,
-    render::{
-        pipeline::{PipelineDescriptor, RenderPipeline},
-        render_graph::{base, AssetRenderResourcesNode, RenderGraph},
-        renderer::RenderResources,
-        shader::{ShaderStage, ShaderStages},
-    },
-};
-use bevy_inspector_egui::Inspectable;
+use bevy::prelude::*;
+// use bevy_inspector_egui::Inspectable;
 use std::f32::consts::PI;
 use std::ops::AddAssign;
+mod material;
+use material::WaterMaterial;
 
-#[derive(Inspectable)]
 pub struct Weather {
     pub wave_intensity: f32,
 }
 
-#[derive(Inspectable, Debug)]
+#[derive(Component, Debug)]
 pub struct Water {
     pub waves: [WaveProperties; 3],
     pub wave_speed: f32,
@@ -48,7 +41,7 @@ pub struct WaveData {
     pub tangent: Vec3,
 }
 
-#[derive(Inspectable, Debug)]
+#[derive(Debug)]
 pub struct WaveProperties {
     pub wavelength: f32,
     pub steepness: f32,
@@ -65,6 +58,7 @@ impl WaveProperties {
     }
 }
 
+#[derive(Component)]
 pub struct Swimmer {
     pub world_rotation: f32, // y angle in radians
 }
@@ -76,71 +70,41 @@ impl Default for Swimmer {
 }
 
 // just to query, should be elsewhere
+#[derive(Component)]
 pub struct WaterCamera;
 
-#[derive(RenderResources, Default, TypeUuid)]
-#[uuid = "463e4b8a-d555-4fc2-ba9f-4c880063ba92"]
-struct WaterUniform {
-    pub time: f32,
-    pub color: Vec4,
-    pub camera: Vec3,
-    pub wave1: Vec4,
-    pub wave2: Vec4,
-    pub wave3: Vec4,
-}
-
-lazy_static_include_str! {
-    WATER_VERTEX_SHADER => "assets/shaders/water.vert",
-    WATER_FRAGMENT_SHADER => "assets/shaders/water.frag",
-}
-
-pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
-    app.add_asset::<WaterUniform>()
-        .insert_resource(Weather {
-            wave_intensity: 2.0,
-        })
-        .add_startup_system(setup.system())
-        .add_system_set(
-            SystemSet::on_update(AppState::InGame)
-                .with_system(update_system.system().label("water").after("physics"))
-                .with_system(wave_probe_system.system().label("water").after("physics")),
-        )
+pub fn add_systems(app: &mut bevy::prelude::App) -> &mut bevy::prelude::App {
+    // app.add_asset::<WaterMaterial>()
+    app.insert_resource(Weather {
+        wave_intensity: 2.0,
+    })
+    .add_plugin(MaterialPlugin::<WaterMaterial>::default())
+    .add_plugin(RenderAssetPlugin::<WaterMaterial>::default())
+    // .add_plugin(material::CustomMaterialPlugin)
+    .add_startup_system(setup.system())
+    .add_system_set(
+        SystemSet::on_update(AppState::InGame)
+            .with_system(update_system.system().label("water").after("physics"))
+            .with_system(wave_probe_system.system().label("water").after("physics")),
+    )
 }
 
 fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     weather: Res<Weather>,
-    mut pipelines: ResMut<Assets<PipelineDescriptor>>,
-    mut shaders: ResMut<Assets<Shader>>,
-    mut render_graph: ResMut<RenderGraph>,
-    mut water_materials: ResMut<Assets<WaterUniform>>,
+    mut water_materials: ResMut<Assets<WaterMaterial>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    let water_pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
-        vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, &WATER_VERTEX_SHADER)),
-        fragment: Some(shaders.add(Shader::from_glsl(
-            ShaderStage::Fragment,
-            &WATER_FRAGMENT_SHADER,
-        ))),
-    }));
-    render_graph.add_system_node(
-        "water_uniform",
-        AssetRenderResourcesNode::<WaterUniform>::new(true),
-    );
-    render_graph
-        .add_node_edge("water_uniform", base::node::MAIN_PASS)
-        .unwrap();
-
-    let mut water = Water {
+    let water = Water {
         waves: get_waves(weather.wave_intensity),
         wave_speed: 0.8,
+        // color: Color::rgb_u8(128, 0, 1),
         color: Color::rgb_u8(3, 0, 1),
     };
-    set_waves(&mut water, weather.wave_intensity);
 
-    let water_material = water_materials.add(WaterUniform {
+    let water_material = water_materials.add(WaterMaterial {
         time: 0.,
         color: water.color.into(),
         camera: Vec3::new(0., 0., 0.),
@@ -149,20 +113,32 @@ fn setup(
         wave3: water.waves[2].to_vec4(),
     });
 
+    let mesh: Handle<Mesh> = asset_server.load("plano.glb#Mesh0/Primitive0");
     let water_entity = commands
-        .spawn_bundle(MeshBundle {
-            mesh: asset_server.load("plano.glb#Mesh0/Primitive0"),
-            // mesh: meshes.add(Mesh::from(shape::Plane { size: 500.0 })),
-            render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::new(
-                water_pipeline_handle,
-            )]),
-            transform: Transform::from_scale(Vec3::new(500.0, 500.0, 500.0)),
-            ..Default::default()
-        })
-        .insert(water_material)
-        .insert(water)
-        .insert(Name::new("Water"))
+        .spawn()
+        .insert_bundle((
+            mesh,
+            Transform::from_scale(Vec3::new(500.0, 500.0, 500.0)),
+            GlobalTransform::default(),
+            water_material,
+            // material::CustomMaterial,
+            Visibility::default(),
+            ComputedVisibility::default(),
+            water,
+            Name::new("Water"),
+        ))
         .id();
+
+    // let water_entity = commands
+    // .spawn_bundle(MaterialMeshBundle {
+    // mesh: asset_server.load("plano.glb#Mesh0/Primitive0"),
+    // material: water_material,
+    // transform: Transform::from_scale(Vec3::new(500.0, 500.0, 500.0)),
+    // ..Default::default()
+    // })
+    // .insert(water)
+    // .insert(Name::new("Water"))
+    // .id();
 
     let water_bottom_plane = commands
         .spawn_bundle(PbrBundle {
@@ -303,14 +279,14 @@ pub fn wave_probe_system(
 const WATER_TRANSLATE_STEP: f32 = 20.;
 fn update_system(
     time: Res<Time>,
-    mut water_mats: ResMut<Assets<WaterUniform>>,
-    mut water_material_query: Query<&Handle<WaterUniform>>,
+    mut water_material_query: Query<&Handle<WaterMaterial>>,
+    mut water_mats: ResMut<Assets<WaterMaterial>>,
     mut water_query: Query<(&mut Water, &mut Transform), Without<PlayerBoat>>,
     boat_query: Query<(&PlayerBoat, &Transform), Without<Water>>,
     camera_query: Query<(&WaterCamera, &Transform), Without<Water>>,
 ) {
     if let Some(mut water_material) = water_material_query
-        .single_mut()
+        .get_single_mut()
         .ok()
         .and_then(|water_handle| water_mats.get_mut(water_handle))
     {
@@ -318,7 +294,7 @@ fn update_system(
         // if let Ok((_, boat_transform)) = boat_query.
         // boat_translation = boat_transform.translation;
         // }
-        if let Ok((water, mut water_transform)) = water_query.single_mut() {
+        if let Ok((water, mut water_transform)) = water_query.get_single_mut() {
             water_material.time = time.seconds_since_startup() as f32 * water.wave_speed;
             water_material.wave1 = water.waves[0].to_vec4();
             water_material.wave2 = water.waves[1].to_vec4();
@@ -326,7 +302,7 @@ fn update_system(
             water_material.color = water.color.into();
 
             water_transform.translation.x = 0.;
-            if let Ok((_, boat_transform)) = boat_query.single() {
+            if let Ok((_, boat_transform)) = boat_query.get_single() {
                 water_transform.translation.x = boat_transform.translation.x
                     - boat_transform.translation.x % WATER_TRANSLATE_STEP;
                 water_transform.translation.z = boat_transform.translation.z
@@ -334,7 +310,7 @@ fn update_system(
             }
         }
 
-        if let Ok((_, transform)) = camera_query.single() {
+        if let Ok((_, transform)) = camera_query.get_single() {
             water_material.camera = transform.translation;
         }
     }

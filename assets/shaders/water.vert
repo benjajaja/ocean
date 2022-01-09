@@ -1,49 +1,52 @@
 #version 450
-// from: https://gitlab.com/TheZoq2/i_sjon_kan_ingen_hora_dig_skrika
 layout(location = 0) in vec3 Vertex_Position;
-layout(location = 1) in vec2 Vertex_Uv;
-layout(location = 0) out vec2 v_Uv;
+layout(location = 1) in vec3 Vertex_Normal;
+layout(location = 2) in vec2 Vertex_Uv;
 
+layout(set = 0, binding = 0) uniform CameraViewProj {
+    mat4 ViewProj;
+    mat4 InverseView;
+    mat4 Projection;
+    vec3 WorldPosition;
+    float near;
+    float far;
+    float width;
+    float height;
+};
+
+layout(set = 2, binding = 0) uniform Mesh {
+    mat4 Model;
+    mat4 InverseTransposeModel;
+    uint flags;
+};
+
+layout(set = 1, binding = 0) uniform WaterUniform {
+    float time;
+    vec3 color;
+    vec3 camera;
+    vec4 wave1;
+    vec4 wave2;
+    vec4 wave3;
+};
+
+layout(location = 0) out vec2 v_Uv;
 layout(location = 1) out vec3 Vertex_Normal;
 layout(location = 2) out vec4 World_Position;
 layout(location = 3) out vec3 o_Vertex_Position;
 layout(location = 4) out vec3 specular;
 
-layout(set = 0, binding = 0) uniform CameraViewProj {
-    mat4 ViewProj;
-};
-layout(set = 1, binding = 0) uniform Transform {
-    mat4 Model;
-};
-layout(set = 2, binding = 0) uniform WaterUniform_time {
-    float time;
-};
-layout(set = 2, binding = 1) uniform WaterUniform_color {
-    vec3 color;
-};
-layout(set = 2, binding = 2) uniform WaterUniform_camera {
-    vec3 camera;
-};
-layout(set = 2, binding = 3) uniform WaterUniform_wave1 {
-    vec4 wave1;
-};
-layout(set = 2, binding = 4) uniform WaterUniform_wave2 {
-    vec4 wave2;
-};
-layout(set = 2, binding = 5) uniform WaterUniform_wave3 {
-    vec4 wave3;
-};
-
-float sine_noise(float, float);
+// from: https://gitlab.com/TheZoq2/i_sjon_kan_ingen_hora_dig_skrika
+/* float sine_noise(float, float); */
 // https://catlikecoding.com/unity/tutorials/flow/waves/
-float snoise(vec2);
+/* float snoise(vec2); */
 void gerstner_wave(vec3 position, inout vec3 target, inout vec3 tangent, inout vec3 binormal, vec4 props);
 
 
-const vec3 light_direction = normalize(vec3(1, 1, -1));
 const float specular_intensity = 100;
 
 void main() {
+    vec3 light_direction = normalize(vec3(1, 1, -1));
+
     o_Vertex_Position = Vertex_Position;
     vec4 Original_World_Position = Model * vec4(Vertex_Position, 1.0);
 
@@ -71,9 +74,9 @@ void main() {
     specular = vec3(.5) * shininess;
 }
 
-float sine_noise(float v, float time) {
-    return (sin(v) + sin(2.2 * v + 5.52) + sin(2.9 * v + 0.93) + sin(4.6 * v + 8.94 * time)) / 16;
-}
+/* float sine_noise(float v, float time) { */
+    /* return (sin(v) + sin(2.2 * v + 5.52) + sin(2.9 * v + 0.93) + sin(4.6 * v + 8.94 * time)) / 16; */
+/* } */
 
 const float M_PI = 3.1415926535897932384626433832795;
 

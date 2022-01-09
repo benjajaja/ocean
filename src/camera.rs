@@ -3,6 +3,7 @@ use crate::sky::SkyDomeLayerBg;
 use crate::water::WaterCamera;
 use bevy::prelude::*;
 
+#[derive(Component)]
 pub struct CameraTracker {
     pub bobber: Transform,
     pub looking_up: LookingUp,
@@ -23,7 +24,7 @@ impl LookingUp {
     }
 }
 
-pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
+pub fn add_systems(app: &mut bevy::prelude::App) -> &mut bevy::prelude::App {
     app.add_startup_system(camera_startup_system.system());
     app.add_system(camera_system.system().label("camera").after("physics"));
     app
@@ -57,8 +58,8 @@ pub fn camera_system(
     >,
     mut boat_query: Query<(&mut PlayerBoat, &mut Transform), Without<CameraTracker>>,
 ) {
-    if let Ok((mut camera, mut camera_transform)) = camera_query.single_mut() {
-        if let Ok((boat, boat_transform)) = boat_query.single_mut() {
+    if let Ok((mut camera, mut camera_transform)) = camera_query.get_single_mut() {
+        if let Ok((boat, boat_transform)) = boat_query.get_single_mut() {
             camera.bobber.translation.x = boat_transform.translation.x;
             camera.bobber.translation.z = boat_transform.translation.z;
             camera.bobber.rotation = camera.bobber.rotation.slerp(

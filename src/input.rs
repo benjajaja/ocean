@@ -2,14 +2,14 @@ use crate::boat;
 use crate::camera::{CameraTracker, LookingUp};
 use crate::AppState;
 use bevy::{input::mouse::MouseMotion, prelude::*};
-use bevy_inspector_egui::WorldInspectorParams;
+// use bevy_inspector_egui::WorldInspectorParams;
 
 const INPUT_ACCEL: f32 = 1.0;
 const INPUT_DECAY: f32 = 4.0;
 const STEER_ACCEL: f32 = 10.0;
 const BOAT_MAX_THRUST: f32 = 1.0;
 
-pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
+pub fn add_systems(app: &mut bevy::prelude::App) -> &mut bevy::prelude::App {
     app.add_system(bevy::input::system::exit_on_esc_system.system())
         .add_system_set(
             SystemSet::on_update(AppState::InGame)
@@ -29,7 +29,7 @@ pub fn ingame_keyboard_input_system(
     mut camera_query: Query<(&mut Transform, &mut CameraTracker)>,
     mut state: ResMut<State<AppState>>,
     mut windows: ResMut<Windows>,
-    mut inspector_params: ResMut<WorldInspectorParams>,
+    // mut inspector_params: ResMut<WorldInspectorParams>,
 ) {
     if keyboard_input.just_pressed(KeyCode::E) {
         if let Ok(_) = state.set(AppState::Menu) {
@@ -39,12 +39,12 @@ pub fn ingame_keyboard_input_system(
         }
     }
 
-    if keyboard_input.just_pressed(KeyCode::V) {
-        inspector_params.enabled = !inspector_params.enabled;
-        if let Some(window) = windows.get_primary_mut() {
-            window.set_cursor_visibility(inspector_params.enabled);
-        }
-    }
+    // if keyboard_input.just_pressed(KeyCode::V) {
+    // inspector_params.enabled = !inspector_params.enabled;
+    // if let Some(window) = windows.get_primary_mut() {
+    // window.set_cursor_visibility(inspector_params.enabled);
+    // }
+    // }
 
     for mut boat in &mut boat_query.iter_mut() {
         if keyboard_input.pressed(KeyCode::W) {
@@ -108,11 +108,11 @@ pub fn menu_keyboard_input_system(
 pub fn mouse_input_system(
     mut mouse_motion_events: EventReader<MouseMotion>,
     mut camera_query: Query<&mut CameraTracker>,
-    inspector_params: ResMut<WorldInspectorParams>,
+    // inspector_params: ResMut<WorldInspectorParams>,
 ) {
-    if inspector_params.enabled {
-        return;
-    }
+    // if inspector_params.enabled {
+    // return;
+    // }
     if let Some(mut camera) = camera_query.iter_mut().next() {
         for event in mouse_motion_events.iter() {
             camera.input_rotation = (camera.input_rotation

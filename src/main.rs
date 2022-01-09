@@ -1,21 +1,15 @@
-#[macro_use]
 extern crate lazy_static_include;
 use bevy::{
     pbr::AmbientLight,
     prelude::*,
-    render::wireframe::WireframePlugin,
-    wgpu::{WgpuFeature, WgpuFeatures, WgpuOptions},
+    // wgpu::{WgpuFeature, WgpuFeatures, WgpuOptions},
 };
-use bevy_egui::EguiPlugin;
-use bevy_inspector_egui::{InspectableRegistry, WorldInspectorParams, WorldInspectorPlugin};
 use core::f32::consts::PI;
+
 mod boat;
 mod camera;
 mod input;
-
 mod sky;
-mod stripe;
-mod ui;
 mod water;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -43,7 +37,7 @@ pub enum Island {
 }
 
 fn main() {
-    let mut app = App::build();
+    let mut app = App::new();
     app.insert_resource(WindowDescriptor {
         width: 500.,
         height: 300.,
@@ -52,25 +46,20 @@ fn main() {
         cursor_visible: false,
         ..Default::default()
     });
-    app.insert_resource(WgpuOptions {
-        features: WgpuFeatures {
-            // The Wireframe requires NonFillPolygonMode feature
-            features: vec![WgpuFeature::NonFillPolygonMode],
-        },
-        ..Default::default()
-    });
 
-    // app.insert_resource(Msaa { samples: 4 });
+    app.insert_resource(Msaa { samples: 4 });
     app.add_plugins(DefaultPlugins);
-    app.add_plugin(WireframePlugin);
-    app.add_plugin(EguiPlugin);
-    app.add_plugin(WorldInspectorPlugin::new());
-    // getting registry from world
-    let mut registry = app
-        .world_mut()
-        .get_resource_or_insert_with(InspectableRegistry::default);
-    // registering custom component to be able to edit it in inspector
-    registry.register::<water::Water>();
+    // app.add_plugin(EguiPlugin);
+    // app.add_plugin(WorldInspectorPlugin::new());
+    // let mut registry = app
+    // .world_mut()
+    // .get_resource_or_insert_with(InspectableRegistry::default);
+    // registry.register::<water::Water>();
+    // app.insert_resource(WorldInspectorParams {
+    // sort_components: true,
+    // enabled: false,
+    // ..Default::default()
+    // });
 
     app.add_state(AppState::InGame);
     app.add_event::<NavigationEvent>();
@@ -78,11 +67,6 @@ fn main() {
 
     app.insert_resource(InGameState {
         time: DayTime::Night,
-    });
-    app.insert_resource(WorldInspectorParams {
-        sort_components: true,
-        enabled: false,
-        ..Default::default()
     });
     app.add_startup_system(setup.system());
 
@@ -94,10 +78,10 @@ fn main() {
     boat::add_systems(&mut app);
     sky::add_systems(&mut app);
     water::add_systems(&mut app);
-    ui::add_systems(&mut app);
+    // ui::add_systems(&mut app);
     app.insert_resource(AmbientLight {
         color: Color::WHITE,
-        brightness: 0.2,
+        brightness: 0.01,
     });
     app.run();
 }
@@ -117,11 +101,7 @@ fn setup(
             ..Default::default()
         })
         .insert(Name::new("Flotante1"))
-        .insert(water::Swimmer {
-            world_rotation: PI / 4.,
-            ..Default::default()
-        });
-    // .insert(Wireframe);
+        .insert(water::Swimmer::default());
 
     commands
         .spawn_bundle(PbrBundle {
@@ -131,9 +111,7 @@ fn setup(
             ..Default::default()
         })
         .insert(Name::new("Flotante2"))
-        .insert(water::Swimmer {
-            ..Default::default()
-        });
+        .insert(water::Swimmer::default());
 
     commands
         .spawn_bundle(PbrBundle {
@@ -146,6 +124,27 @@ fn setup(
         })
         .insert(Name::new("Flotante3"))
         .insert(water::Swimmer::default());
+
+    let theta = std::f32::consts::FRAC_PI_4;
+    let light_transform = Mat4::from_euler(EulerRot::ZYX, 0.0, std::f32::consts::FRAC_PI_2, -theta);
+    commands.spawn_bundle(DirectionalLightBundle {
+        directional_light: DirectionalLight {
+            illuminance: 10000.0,
+            shadow_projection: OrthographicProjection {
+                left: -10.0,
+                right: 10.0,
+                bottom: -10.0,
+                top: 10.0,
+                near: -50.0,
+                far: 50.0,
+                ..Default::default()
+            },
+            shadows_enabled: true,
+            ..Default::default()
+        },
+        transform: Transform::from_matrix(light_transform),
+        ..Default::default()
+    });
 }
 
 #[derive(Debug)]
@@ -155,6 +154,7 @@ pub enum NavigationEvent {
     Leave,
 }
 
+#[derive(Component)]
 pub struct WorldIsland {
     #[allow(dead_code)]
     island: Island,
