@@ -38,7 +38,7 @@ pub fn camera_startup_system(mut commands: Commands) {
             ..Default::default()
         })
         .insert(CameraTracker {
-            bobber: Transform::from_translation(Vec3::new(0.0, 5.0, 0.0)),
+            bobber: Transform::from_translation(Vec3::new(0.0, 15.0, 0.0)),
             looking_up: LookingUp::None,
             input_rotation: Quat::IDENTITY,
         })
@@ -46,6 +46,7 @@ pub fn camera_startup_system(mut commands: Commands) {
 }
 
 const CAMERA_ROTATION_FACTOR: f32 = 10.0;
+const CAMERA_Z_TRANSLATION: f32 = 50.0;
 pub fn camera_system(
     time: Res<Time>,
     mut camera_query: Query<
@@ -69,7 +70,8 @@ pub fn camera_system(
             );
         }
 
-        let camera_z = 15. + (camera.looking_up.value() * 14.99);
+        let camera_z =
+            CAMERA_Z_TRANSLATION + (camera.looking_up.value() * (CAMERA_Z_TRANSLATION - 0.01));
         camera_transform.translation =
             camera.bobber.translation + (camera.bobber.rotation * Vec3::new(0.0, 5.0, camera_z));
         let mut looking_at = camera.bobber.translation;

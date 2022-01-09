@@ -179,7 +179,7 @@ fn island_enter_leave(
 
                     let mut palmtree_transform = Transform::from_translation(*translation);
 
-                    palmtree_transform.scale = Vec3::new(4., 4., 4.);
+                    palmtree_transform.scale = Vec3::new(1., 1., 1.);
                     // let palmtree = PbrBundle {
                     // mesh: asset_server.load("palmera.glb#Mesh3/Primitive0"),
                     // material: materials.add(Color::rgb(0.9, 0.9, 0.6).into()),
@@ -214,8 +214,8 @@ fn island_enter_leave(
                     println!("sunset");
                     state.time = DayTime::Night;
 
-                    for (_, _entity) in worldisland_query.iter() {
-                        // commands.entity(entity).despawn();
+                    for (_, entity) in worldisland_query.iter() {
+                        commands.entity(entity).despawn();
                     }
                 }
                 DayTime::Night => {

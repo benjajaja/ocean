@@ -76,7 +76,7 @@ pub struct WaterCamera;
 pub fn add_systems(app: &mut bevy::prelude::App) -> &mut bevy::prelude::App {
     // app.add_asset::<WaterMaterial>()
     app.insert_resource(Weather {
-        wave_intensity: 2.0,
+        wave_intensity: 1.0,
     })
     .add_plugin(MaterialPlugin::<WaterMaterial>::default())
     .add_plugin(RenderAssetPlugin::<WaterMaterial>::default())
@@ -97,11 +97,11 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
+    let color = Color::rgb_u8(3, 0, 1);
     let water = Water {
         waves: get_waves(weather.wave_intensity),
         wave_speed: 0.8,
-        // color: Color::rgb_u8(128, 0, 1),
-        color: Color::rgb_u8(3, 0, 1),
+        color: color.clone(),
     };
 
     let water_material = water_materials.add(WaterMaterial {
@@ -113,12 +113,12 @@ fn setup(
         wave3: water.waves[2].to_vec4(),
     });
 
-    let mesh: Handle<Mesh> = asset_server.load("plano.glb#Mesh0/Primitive0");
+    let mesh: Handle<Mesh> = asset_server.load("water_lod.glb#Mesh0/Primitive0");
     let water_entity = commands
         .spawn()
         .insert_bundle((
             mesh,
-            Transform::from_scale(Vec3::new(500.0, 500.0, 500.0)),
+            Transform::from_scale(Vec3::new(1.0, 1.0, 1.0)),
             GlobalTransform::default(),
             water_material,
             // material::CustomMaterial,
@@ -129,21 +129,10 @@ fn setup(
         ))
         .id();
 
-    // let water_entity = commands
-    // .spawn_bundle(MaterialMeshBundle {
-    // mesh: asset_server.load("plano.glb#Mesh0/Primitive0"),
-    // material: water_material,
-    // transform: Transform::from_scale(Vec3::new(500.0, 500.0, 500.0)),
-    // ..Default::default()
-    // })
-    // .insert(water)
-    // .insert(Name::new("Water"))
-    // .id();
-
     let water_bottom_plane = commands
         .spawn_bundle(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Plane { size: 5000.0 })),
-            material: materials.add(Color::rgb(0.0, 0.0, 0.6).into()),
+            material: materials.add(color.into()),
             transform: Transform::from_translation(Vec3::new(0.0, -1.0, 0.0)),
             ..Default::default()
         })
