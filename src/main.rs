@@ -215,7 +215,8 @@ fn island_enter_leave(
                     state.time = DayTime::Night;
 
                     for (_, entity) in worldisland_query.iter() {
-                        commands.entity(entity).despawn();
+                        commands.entity(entity).despawn_recursive();
+                        println!("despawn {:?}", entity);
                     }
                 }
                 DayTime::Night => {
