@@ -70,21 +70,10 @@ impl SpecializedMaterial for SkyMaterial {
     }
 
     fn specialize(key: Self::Key, descriptor: &mut RenderPipelineDescriptor) {
-        let mut depth_stencil = descriptor.depth_stencil.as_mut().unwrap();
-        // depth_stencil.depth_compare = CompareFunction::LessEqual;
-        // depth_stencil.depth_write_enabled = false;
-        // depth_stencil.stencil = StencilState {
-        // front: StencilFaceState::IGNORE,
-        // back: StencilFaceState::IGNORE,
-        // read_mask: 0,
-        // write_mask: 0,
-        // };
-        // depth_stencil.bias = DepthBiasState {
-        // constant: 0,
-        // slope_scale: 0.0,
-        // clamp: 0.0,
-        // };
-        println!("stencil {}: {:?}", key, descriptor.depth_stencil);
+        if let Some(depth_stencil_state) = &mut descriptor.depth_stencil {
+            depth_stencil_state.depth_compare = CompareFunction::GreaterEqual;
+            depth_stencil_state.depth_write_enabled = false;
+        }
     }
 
     fn fragment_shader(asset_server: &AssetServer) -> Option<Handle<Shader>> {

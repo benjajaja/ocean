@@ -1,15 +1,11 @@
 extern crate lazy_static_include;
-use bevy::{
-    pbr::AmbientLight,
-    prelude::*,
-    // wgpu::{WgpuFeature, WgpuFeatures, WgpuOptions},
-};
-use core::f32::consts::PI;
+use bevy::{pbr::AmbientLight, prelude::*};
 
 mod boat;
 mod camera;
 mod input;
 mod sky;
+mod ui;
 mod water;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -49,7 +45,6 @@ fn main() {
 
     app.insert_resource(Msaa { samples: 4 });
     app.add_plugins(DefaultPlugins);
-    // app.add_plugin(EguiPlugin);
     // app.add_plugin(WorldInspectorPlugin::new());
     // let mut registry = app
     // .world_mut()
@@ -78,7 +73,7 @@ fn main() {
     boat::add_systems(&mut app);
     sky::add_systems(&mut app);
     water::add_systems(&mut app);
-    // ui::add_systems(&mut app);
+    ui::add_systems(&mut app);
     app.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 0.01,

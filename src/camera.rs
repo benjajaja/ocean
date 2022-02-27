@@ -2,7 +2,6 @@ use crate::boat::PlayerBoat;
 use crate::sky::SkyDomeLayerBg;
 use crate::water::WaterCamera;
 use bevy::prelude::*;
-use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 
 #[derive(Component)]
 pub struct CameraTracker {

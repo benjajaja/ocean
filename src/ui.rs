@@ -4,26 +4,26 @@ use bevy::{
     diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin},
     prelude::*,
 };
-use bevy_egui::{egui, EguiContext};
+use bevy_egui::{egui, EguiContext, EguiPlugin};
 
+#[derive(Component)]
 struct FpsText;
+#[derive(Component)]
 struct BoatHUDText;
 
-pub fn add_systems(app: &mut bevy::prelude::AppBuilder) -> &mut bevy::prelude::AppBuilder {
-    app.add_plugin(FrameTimeDiagnosticsPlugin::default())
-        .add_startup_system(spawn_ui.system())
-        .add_system(text_update_fps_system.system())
-        .add_system(text_update_hud_system.system());
+pub fn add_systems(app: &mut bevy::prelude::App) -> &mut bevy::prelude::App {
+    app.add_plugin(FrameTimeDiagnosticsPlugin::default());
+    app.add_plugin(EguiPlugin);
+    app.add_startup_system(spawn_ui.system());
+    app.add_system(text_update_fps_system.system());
+    app.add_system(text_update_hud_system.system());
 
     app.add_system_set(SystemSet::on_update(AppState::Menu).with_system(ui_example.system()));
+
     app
 }
 
-fn spawn_ui(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
+fn spawn_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/VCR_OSD_MONO_1.001.ttf");
     let font_size = 10.;
 
@@ -37,7 +37,7 @@ fn spawn_ui(
                 justify_content: JustifyContent::SpaceBetween,
                 ..Default::default()
             },
-            material: materials.add(Color::NONE.into()),
+            color: Color::NONE.into(),
             ..Default::default()
         })
         .with_children(|parent| {
@@ -83,7 +83,7 @@ fn spawn_ui(
                 justify_content: JustifyContent::SpaceBetween,
                 ..Default::default()
             },
-            material: materials.add(Color::NONE.into()),
+            color: Color::NONE.into(),
             ..Default::default()
         })
         .with_children(|parent| {
@@ -156,22 +156,21 @@ fn text_update_hud_system(
     boat_query: Query<&boat::PlayerBoat>,
 ) {
     for mut text in hud_query.iter_mut() {
-        if let Ok(boat) = boat_query.single() {
-            text.sections[1].value = format!("{:.2}", boat.throttle);
-            text.sections[3].value = format!("{:.2}", boat.speed);
-        }
+        let boat = boat_query.single();
+        text.sections[1].value = format!("{:.2}", boat.throttle);
+        text.sections[3].value = format!("{:.2}", boat.speed);
     }
 }
 
 // Note the usage of `ResMut`. Even though `ctx` method doesn't require
 // mutability, accessing the context from different threads will result
 // into panic if you don't enable `egui/multi_threaded` feature.
-fn ui_example(egui_context: ResMut<EguiContext>) {
+fn ui_example(mut egui_context: ResMut<EguiContext>) {
     egui::Window::new("Storage")
         .collapsible(false)
         .resizable(false)
         .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
-        .show(egui_context.ctx(), |ui| {
-            ui.label("Pharaoh");
+        .show(egui_context.ctx_mut(), |ui| {
+            ui.label("Sarcophagus");
         });
 }
