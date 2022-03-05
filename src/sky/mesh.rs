@@ -6,7 +6,7 @@ use rand::distributions::{Distribution, Uniform};
 use std::f32::consts::{FRAC_PI_2, PI};
 use wgpu::PrimitiveTopology;
 
-pub const STAR_DISTANCE: f32 = 10.; // work around broken depth_stencil trick
+pub const STAR_DISTANCE: f32 = 0.5; // work around broken depth_stencil trick
 
 pub struct StarDef {
     pub quat: Quat,

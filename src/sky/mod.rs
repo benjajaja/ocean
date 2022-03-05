@@ -44,7 +44,6 @@ pub fn add_systems(app: &mut bevy::prelude::App) -> &mut bevy::prelude::App {
     app.insert_resource(SkyDome::new());
 
     app.add_plugin(MaterialPlugin::<SkyMaterial>::default());
-    app.add_plugin(material::GameOfLifeComputePlugin);
     app.add_startup_system(spawn_sky.system());
 
     app.add_system(skydome_system.system());
@@ -62,7 +61,23 @@ pub fn spawn_sky(
     // mut render_graph: ResMut<RenderGraph>,
     asset_server: Res<AssetServer>,
 ) {
-    let texture_handle: Handle<Image> = asset_server.load("star.png");
+    // let texture_handle: Handle<Image> = asset_server.load("star.png");
+    let sky_sphere_material_handle = sky_materials.add(SkyMaterial {
+        color: Color::MIDNIGHT_BLUE,
+    });
+    commands
+        .spawn()
+        .insert_bundle(MaterialMeshBundle {
+            mesh: meshes.add(Mesh::from(shape::Icosphere {
+                radius: -1000.0,
+                subdivisions: 4,
+            })),
+            material: sky_sphere_material_handle,
+            ..Default::default()
+        })
+        .insert(Name::new("SkySphere"))
+        .insert(SkyDomeLayer)
+        .insert(SkyDomeLayerBg);
 
     let sky_material_handle = sky_materials.add(SkyMaterial {
         color: Color::WHITE,
@@ -122,7 +137,7 @@ pub fn spawn_sky(
             mesh: meshes.add(mesh::island_stars(island_stars)),
             material: sky_material_islands,
             // render_pipelines: render_pipelines.clone(),
-            transform: Transform::from_scale(Vec3::splat(100.0)),
+            // transform: Transform::from_scale(Vec3::splat(100.0)),
             ..Default::default()
         })
         .insert(Name::new("SkyIslands"))

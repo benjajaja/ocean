@@ -25,9 +25,7 @@ pub struct PlayerBoat {
 pub struct BoatJet;
 
 #[derive(Component)]
-pub struct BoatExhaustParticle {
-    free: bool,
-}
+pub struct BoatExhaustParticle;
 
 #[derive(Debug)]
 pub struct MoveEvent {
@@ -172,7 +170,7 @@ pub fn boat_physics_system(
                 Vec2::new(new_translation.x, new_translation.z),
                 time.seconds_since_startup() as f32 * water.wave_speed,
             );
-            let takeoff_speed = (boat.speed / 50.).clamp(0., 1.);
+            // let takeoff_speed = (boat.speed / 50.).clamp(0., 1.);
             new_translation.y = wavedata.position.y; // * (1. - takeoff_speed) + takeoff_speed * 5.;
 
             let normal_quat = water::surface_quat(&wavedata);

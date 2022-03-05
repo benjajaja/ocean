@@ -206,6 +206,7 @@ fn wave_sequence(position: Vec3, time: f32, waves: &[WaveProperties; 3]) -> Wave
     }
 }
 
+#[allow(dead_code)]
 pub fn set_waves(water: &mut Water, intensity: f32) -> () {
     water.waves = get_waves(intensity);
 }

@@ -1,6 +1,3 @@
-use bevy::core_pipeline::node::MAIN_PASS_DEPENDENCIES;
-use bevy::render::renderer::RenderContext;
-use bevy::render::RenderApp;
 use bevy::{
     ecs::system::{lifetimeless::SRes, SystemParamItem},
     pbr::{MaterialPipeline, SpecializedMaterial},
@@ -8,7 +5,6 @@ use bevy::{
     reflect::TypeUuid,
     render::{
         render_asset::{PrepareAssetError, RenderAsset},
-        render_graph::{self, RenderGraph},
         render_resource::{
             std140::{AsStd140, Std140},
             CompareFunction, *,
@@ -69,7 +65,7 @@ impl SpecializedMaterial for SkyMaterial {
         String::from("sky")
     }
 
-    fn specialize(key: Self::Key, descriptor: &mut RenderPipelineDescriptor) {
+    fn specialize(_key: Self::Key, descriptor: &mut RenderPipelineDescriptor) {
         if let Some(depth_stencil_state) = &mut descriptor.depth_stencil {
             depth_stencil_state.depth_compare = CompareFunction::GreaterEqual;
             depth_stencil_state.depth_write_enabled = false;
@@ -78,10 +74,8 @@ impl SpecializedMaterial for SkyMaterial {
 
     fn fragment_shader(asset_server: &AssetServer) -> Option<Handle<Shader>> {
         Some(asset_server.load("shaders/sky.wgsl"))
-        // None
     }
-    fn vertex_shader(asset_server: &AssetServer) -> Option<Handle<Shader>> {
-        // Some(asset_server.load("shaders/sky.wgsl"))
+    fn vertex_shader(_asset_server: &AssetServer) -> Option<Handle<Shader>> {
         None
     }
 
@@ -103,57 +97,5 @@ impl SpecializedMaterial for SkyMaterial {
             }],
             label: None,
         })
-    }
-}
-
-pub struct GameOfLifeComputePlugin;
-
-impl Plugin for GameOfLifeComputePlugin {
-    fn build(&self, app: &mut App) {
-        let render_app = app.sub_app_mut(RenderApp);
-        // render_app
-        // .init_resource::<GameOfLifePipeline>()
-        // .add_system_to_stage(RenderStage::Extract, extract_game_of_life_image)
-        // .add_system_to_stage(RenderStage::Queue, queue_bind_group);
-
-        let mut render_graph = render_app.world.get_resource_mut::<RenderGraph>().unwrap();
-        render_graph.add_node("game_of_life", DispatchGameOfLife::default());
-        render_graph
-            .add_node_edge("game_of_life", MAIN_PASS_DEPENDENCIES)
-            .unwrap();
-    }
-}
-
-enum Initialized {
-    Default,
-    No,
-    Yes,
-}
-struct DispatchGameOfLife {
-    initialized: Initialized,
-}
-impl Default for DispatchGameOfLife {
-    fn default() -> Self {
-        Self {
-            initialized: Initialized::Default,
-        }
-    }
-}
-impl render_graph::Node for DispatchGameOfLife {
-    fn update(&mut self, _world: &mut World) {
-        match self.initialized {
-            Initialized::Default => self.initialized = Initialized::No,
-            Initialized::No => self.initialized = Initialized::Yes,
-            Initialized::Yes => {}
-        }
-    }
-
-    fn run(
-        &self,
-        _graph: &mut render_graph::RenderGraphContext,
-        render_context: &mut RenderContext,
-        world: &World,
-    ) -> Result<(), render_graph::NodeRunError> {
-        Ok(())
     }
 }
