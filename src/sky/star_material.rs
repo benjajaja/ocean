@@ -13,10 +13,11 @@ use bevy::{
     },
 };
 
-#[derive(Debug, Clone, TypeUuid)]
+#[derive(Default, Debug, Clone, TypeUuid, AsStd140)]
 #[uuid = "d9645c26-9290-4651-bbb1-4a83fb071b38"]
 pub struct SkyStarMaterial {
-    pub color: Color,
+    pub color: Vec4,
+    pub background: i32,
 }
 
 #[derive(Clone)]
@@ -37,10 +38,11 @@ impl RenderAsset for SkyStarMaterial {
         extracted_asset: Self::ExtractedAsset,
         (render_device, material_pipeline): &mut SystemParamItem<Self::Param>,
     ) -> Result<Self::PreparedAsset, PrepareAssetError<Self::ExtractedAsset>> {
-        let color = Vec4::from_slice(&extracted_asset.color.as_linear_rgba_f32());
+        let value_std140 = extracted_asset.as_std140();
+
         let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-            contents: color.as_std140().as_bytes(),
-            label: None,
+            contents: value_std140.as_bytes(),
+            label: Some("sky_material_uniform_buffer"),
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         });
         let bind_group = render_device.create_bind_group(&BindGroupDescriptor {
@@ -48,7 +50,7 @@ impl RenderAsset for SkyStarMaterial {
                 binding: 0,
                 resource: buffer.as_entire_binding(),
             }],
-            label: None,
+            label: Some("sky_material_bind_group"),
             layout: &material_pipeline.material_layout,
         });
 
@@ -91,7 +93,7 @@ impl SpecializedMaterial for SkyStarMaterial {
                 ty: BindingType::Buffer {
                     ty: BufferBindingType::Uniform,
                     has_dynamic_offset: false,
-                    min_binding_size: BufferSize::new(Vec4::std140_size_static() as u64),
+                    min_binding_size: BufferSize::new(SkyStarMaterial::std140_size_static() as u64),
                 },
                 count: None,
             }],

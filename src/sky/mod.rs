@@ -67,7 +67,8 @@ pub fn spawn_sky(
 ) {
     // let texture_handle: Handle<Image> = asset_server.load("star.png");
     let sky_sphere_material_handle = sky_star_materials.add(SkyStarMaterial {
-        color: Color::MIDNIGHT_BLUE,
+        color: Color::MIDNIGHT_BLUE.into(),
+        background: 1,
     });
     commands
         .spawn()
@@ -84,7 +85,8 @@ pub fn spawn_sky(
         .insert(SkyDomeLayerBg);
 
     let sky_material_handle = sky_star_materials.add(SkyStarMaterial {
-        color: Color::WHITE,
+        color: Color::WHITE.into(),
+        background: 0,
     });
 
     commands
