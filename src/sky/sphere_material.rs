@@ -14,8 +14,8 @@ use bevy::{
 };
 
 #[derive(Debug, Clone, TypeUuid)]
-#[uuid = "d9645c26-9290-4651-bbb1-4a83fb071b38"]
-pub struct SkyMaterial {
+#[uuid = "eb7e8a46-d676-4a76-b45a-3834599d97fe"]
+pub struct SkySphereMaterial {
     pub color: Color,
 }
 
@@ -25,8 +25,8 @@ pub struct GpuCustomMaterial {
     bind_group: BindGroup,
 }
 
-impl RenderAsset for SkyMaterial {
-    type ExtractedAsset = SkyMaterial;
+impl RenderAsset for SkySphereMaterial {
+    type ExtractedAsset = SkySphereMaterial;
     type PreparedAsset = GpuCustomMaterial;
     type Param = (SRes<RenderDevice>, SRes<MaterialPipeline<Self>>);
     fn extract_asset(&self) -> Self::ExtractedAsset {
@@ -59,10 +59,10 @@ impl RenderAsset for SkyMaterial {
     }
 }
 
-impl SpecializedMaterial for SkyMaterial {
+impl SpecializedMaterial for SkySphereMaterial {
     type Key = String;
-    fn key(_: &<SkyMaterial as RenderAsset>::PreparedAsset) -> Self::Key {
-        String::from("sky")
+    fn key(_: &<SkySphereMaterial as RenderAsset>::PreparedAsset) -> Self::Key {
+        String::from("sky_sphere")
     }
 
     fn specialize(_key: Self::Key, descriptor: &mut RenderPipelineDescriptor) {
@@ -73,7 +73,7 @@ impl SpecializedMaterial for SkyMaterial {
     }
 
     fn fragment_shader(asset_server: &AssetServer) -> Option<Handle<Shader>> {
-        Some(asset_server.load("shaders/sky.wgsl"))
+        Some(asset_server.load("shaders/sky_sphere.wgsl"))
     }
     fn vertex_shader(_asset_server: &AssetServer) -> Option<Handle<Shader>> {
         None

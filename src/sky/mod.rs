@@ -3,9 +3,11 @@ use crate::InGameState;
 use bevy::prelude::*;
 use std::f32::consts::FRAC_PI_2;
 
-use self::material::SkyMaterial;
-mod material;
+// use self::sphere_material::SkySphereMaterial;
+use self::star_material::SkyStarMaterial;
 mod mesh;
+// mod sphere_material;
+mod star_material;
 
 #[derive(Component)]
 pub struct SkyDomeLayer;
@@ -43,7 +45,8 @@ pub fn add_systems(app: &mut bevy::prelude::App) -> &mut bevy::prelude::App {
     app.insert_resource(ClearColor(Color::rgb(0., 0., 0.)));
     app.insert_resource(SkyDome::new());
 
-    app.add_plugin(MaterialPlugin::<SkyMaterial>::default());
+    app.add_plugin(MaterialPlugin::<SkyStarMaterial>::default());
+    // app.add_plugin(MaterialPlugin::<SkySphereMaterial>::default());
     app.add_startup_system(spawn_sky.system());
 
     app.add_system(skydome_system.system());
@@ -56,20 +59,21 @@ pub fn spawn_sky(
     // mut pipelines: ResMut<Assets<RenderPipelineDescriptor>>,
     // mut pipelines: ResMut<SpecializedPipelines<IsRedPipeline>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut sky_materials: ResMut<Assets<SkyMaterial>>,
+    mut sky_star_materials: ResMut<Assets<SkyStarMaterial>>,
+    // mut sky_sphere_materials: ResMut<Assets<SkySphereMaterial>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     // mut render_graph: ResMut<RenderGraph>,
     asset_server: Res<AssetServer>,
 ) {
     // let texture_handle: Handle<Image> = asset_server.load("star.png");
-    let sky_sphere_material_handle = sky_materials.add(SkyMaterial {
+    let sky_sphere_material_handle = sky_star_materials.add(SkyStarMaterial {
         color: Color::MIDNIGHT_BLUE,
     });
     commands
         .spawn()
         .insert_bundle(MaterialMeshBundle {
             mesh: meshes.add(Mesh::from(shape::Icosphere {
-                radius: -1000.0,
+                radius: -1.0,
                 subdivisions: 4,
             })),
             material: sky_sphere_material_handle,
@@ -79,18 +83,15 @@ pub fn spawn_sky(
         .insert(SkyDomeLayer)
         .insert(SkyDomeLayerBg);
 
-    let sky_material_handle = sky_materials.add(SkyMaterial {
+    let sky_material_handle = sky_star_materials.add(SkyStarMaterial {
         color: Color::WHITE,
-        // base_color_texture: Some(texture_handle),
     });
 
     commands
         .spawn()
         .insert_bundle(MaterialMeshBundle {
             mesh: meshes.add(mesh::bg_stars()),
-            // render_pipelines: render_pipelines.clone(),
             material: sky_material_handle,
-            // transform: Transform::from_scale(Vec3::splat(1.0)),
             ..Default::default()
         })
         // .insert(sky_material_handle)
@@ -122,6 +123,7 @@ pub fn spawn_sky(
         base_color: Color::WHITE,
         base_color_texture: Some(texture_handle_islands),
         unlit: true,
+        alpha_mode: AlphaMode::Blend,
         ..Default::default()
     });
 
@@ -136,8 +138,6 @@ pub fn spawn_sky(
         .spawn_bundle(PbrBundle {
             mesh: meshes.add(mesh::island_stars(island_stars)),
             material: sky_material_islands,
-            // render_pipelines: render_pipelines.clone(),
-            // transform: Transform::from_scale(Vec3::splat(100.0)),
             ..Default::default()
         })
         .insert(Name::new("SkyIslands"))
