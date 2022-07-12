@@ -97,7 +97,7 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    let color = Color::rgb_u8(3, 0, 1);
+    let color = Color::SEA_GREEN;
     let water = Water {
         waves: get_waves(weather.wave_intensity),
         wave_speed: 0.8,

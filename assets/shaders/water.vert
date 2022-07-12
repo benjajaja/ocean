@@ -42,10 +42,9 @@ layout(location = 4) out vec3 specular;
 void gerstner_wave(vec3 position, inout vec3 target, inout vec3 tangent, inout vec3 binormal, vec4 props);
 
 
-const float specular_intensity = 100;
+const float specular_intensity = 1;
 
 void main() {
-    vec3 light_direction = normalize(vec3(1, 1, -1));
 
     o_Vertex_Position = Vertex_Position;
     vec4 Original_World_Position = Model * vec4(Vertex_Position, 1.0);
@@ -67,6 +66,7 @@ void main() {
     Vertex_Normal = normalize(cross(binormal, tangent));
 
     // light reflection
+    vec3 light_direction = normalize(vec3(1, 1, -1));
     vec3 light_reflect_direction = reflect(-light_direction, Vertex_Normal);
     vec3 view_direction = normalize(camera - World_Position.xyz);
     float light_see_direction = max(0.0, dot(light_reflect_direction, view_direction));
