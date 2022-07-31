@@ -4,7 +4,7 @@ use bevy::{
 };
 use rand::distributions::{Distribution, Uniform};
 use std::f32::consts::{FRAC_PI_2, PI};
-use wgpu::PrimitiveTopology;
+use wgpu_types::PrimitiveTopology;
 
 pub const STAR_DISTANCE: f32 = 0.9;
 
@@ -80,12 +80,12 @@ fn stars(defs: Vec<StarDef>) -> Mesh {
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
     mesh.set_indices(Some(indices));
 
-    mesh.set_attribute(
+    mesh.insert_attribute(
         Mesh::ATTRIBUTE_POSITION,
         VertexAttributeValues::from(positions),
     );
-    mesh.set_attribute(Mesh::ATTRIBUTE_NORMAL, VertexAttributeValues::from(normals));
-    mesh.set_attribute(Mesh::ATTRIBUTE_UV_0, VertexAttributeValues::from(uvs));
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, VertexAttributeValues::from(normals));
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, VertexAttributeValues::from(uvs));
 
     mesh
 }

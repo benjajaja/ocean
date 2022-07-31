@@ -38,11 +38,11 @@ fn paddle_transform() -> Transform {
 }
 
 pub fn add_systems(app: &mut bevy::prelude::App) -> &mut bevy::prelude::App {
-    app.add_startup_system(boat_startup_system.system())
+    app.add_startup_system(boat_startup_system)
         // must run after input to avoid some jankiness
         .add_system_set(
             SystemSet::on_update(AppState::InGame)
-                .with_system(boat_physics_system.system().label("physics").after("input")),
+                .with_system(boat_physics_system.label("physics").after("input")),
         )
 }
 

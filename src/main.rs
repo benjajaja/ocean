@@ -63,12 +63,12 @@ fn main() {
     app.insert_resource(InGameState {
         time: DayTime::Night,
     });
-    app.add_startup_system(setup.system());
+    app.add_startup_system(setup);
 
     camera::add_systems(&mut app);
     input::add_systems(&mut app);
 
-    app.add_system(island_enter_leave.system());
+    app.add_system(island_enter_leave);
 
     boat::add_systems(&mut app);
     sky::add_systems(&mut app);
@@ -189,7 +189,10 @@ fn island_enter_leave(
                             sky_rotation: *sky_rotation,
                         })
                         .with_children(|parent| {
-                            parent.spawn_scene(scene_handle);
+                            parent.spawn_bundle(SceneBundle {
+                                scene: scene_handle,
+                                ..Default::default()
+                            });
                             // scene_spawner.spawn_as_child(scene_handle, parent.parent_entity());
                             // scene_spawner.spawn_dynamic(scene_handle);
                         });

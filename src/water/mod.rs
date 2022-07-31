@@ -79,13 +79,11 @@ pub fn add_systems(app: &mut bevy::prelude::App) -> &mut bevy::prelude::App {
         wave_intensity: 1.0,
     })
     .add_plugin(MaterialPlugin::<WaterMaterial>::default())
-    .add_plugin(RenderAssetPlugin::<WaterMaterial>::default())
-    // .add_plugin(material::CustomMaterialPlugin)
-    .add_startup_system(setup.system())
+    .add_startup_system(setup)
     .add_system_set(
         SystemSet::on_update(AppState::InGame)
-            .with_system(update_system.system().label("water").after("physics"))
-            .with_system(wave_probe_system.system().label("water").after("physics")),
+            .with_system(update_system.label("water").after("physics"))
+            .with_system(wave_probe_system.label("water").after("physics")),
     )
 }
 

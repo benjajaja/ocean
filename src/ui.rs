@@ -14,11 +14,11 @@ struct BoatHUDText;
 pub fn add_systems(app: &mut bevy::prelude::App) -> &mut bevy::prelude::App {
     app.add_plugin(FrameTimeDiagnosticsPlugin::default());
     app.add_plugin(EguiPlugin);
-    app.add_startup_system(spawn_ui.system());
-    app.add_system(text_update_fps_system.system());
-    app.add_system(text_update_hud_system.system());
+    app.add_startup_system(spawn_ui);
+    app.add_system(text_update_fps_system);
+    app.add_system(text_update_hud_system);
 
-    app.add_system_set(SystemSet::on_update(AppState::Menu).with_system(ui_example.system()));
+    app.add_system_set(SystemSet::on_update(AppState::Menu).with_system(ui_example));
 
     app
 }
@@ -26,8 +26,6 @@ pub fn add_systems(app: &mut bevy::prelude::App) -> &mut bevy::prelude::App {
 fn spawn_ui(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/VCR_OSD_MONO_1.001.ttf");
     let font_size = 10.;
-
-    commands.spawn_bundle(UiCameraBundle::default());
 
     commands
         .spawn_bundle(NodeBundle {

@@ -25,14 +25,14 @@ impl LookingUp {
 }
 
 pub fn add_systems(app: &mut bevy::prelude::App) -> &mut bevy::prelude::App {
-    app.add_startup_system(camera_startup_system.system());
-    app.add_system(camera_system.system().label("camera").after("physics"));
+    app.add_startup_system(camera_startup_system);
+    app.add_system(camera_system.label("camera").after("physics"));
     app
 }
 
 pub fn camera_startup_system(mut commands: Commands) {
     commands
-        .spawn_bundle(PerspectiveCameraBundle {
+        .spawn_bundle(Camera3dBundle {
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0))
                 .looking_at(Vec3::default(), Vec3::Y),
             ..Default::default()

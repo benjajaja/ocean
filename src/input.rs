@@ -10,15 +10,15 @@ const STEER_ACCEL: f32 = 10.0;
 const BOAT_MAX_THRUST: f32 = 1.0;
 
 pub fn add_systems(app: &mut bevy::prelude::App) -> &mut bevy::prelude::App {
-    app.add_system(bevy::input::system::exit_on_esc_system.system())
+    app.add_system(bevy::window::close_on_esc)
         .add_system_set(
             SystemSet::on_update(AppState::InGame)
-                .with_system(ingame_keyboard_input_system.system().label("input"))
-                .with_system(mouse_input_system.system().label("input")),
+                .with_system(ingame_keyboard_input_system.label("input"))
+                .with_system(mouse_input_system.label("input")),
         )
         .add_system_set(
             SystemSet::on_update(AppState::Menu)
-                .with_system(menu_keyboard_input_system.system().label("input")),
+                .with_system(menu_keyboard_input_system.label("input")),
         )
 }
 

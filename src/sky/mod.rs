@@ -46,10 +46,9 @@ pub fn add_systems(app: &mut bevy::prelude::App) -> &mut bevy::prelude::App {
     app.insert_resource(SkyDome::new());
 
     app.add_plugin(MaterialPlugin::<SkyStarMaterial>::default());
-    // app.add_plugin(MaterialPlugin::<SkySphereMaterial>::default());
-    app.add_startup_system(spawn_sky.system());
+    app.add_startup_system(spawn_sky);
 
-    app.add_system(skydome_system.system());
+    app.add_system(skydome_system);
 
     app
 }
